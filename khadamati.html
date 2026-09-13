@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>خدماتي — حرفيون موثوقون عند الطلب</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@600;700;800&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FAF6EF;
+    --panel:#FFFFFF;
+    --ink:#2B2420;
+    --ink-soft:#6B5F53;
+    --rust:#B5502D;
+    --rust-deep:#8C3C20;
+    --steel:#33534F;
+    --line:#E7DCC9;
+    --ok:#3E6B4F;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:'Tajawal',sans-serif;line-height:1.6;}
+  h1,h2,h3,.brand{font-family:'Cairo',sans-serif;}
+  a{color:inherit;text-decoration:none;}
+
+  header{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:18px 6vw;border-bottom:1px solid var(--line);
+    position:sticky;top:0;background:var(--bg);z-index:50;
+  }
+  .brand{font-size:21px;font-weight:800;color:var(--rust-deep);display:flex;align-items:center;gap:10px;}
+  .brand .mark{width:32px;height:32px;border-radius:8px;background:var(--rust);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;}
+  nav{display:flex;gap:26px;font-size:15px;color:var(--ink-soft);}
+  .btn{padding:10px 20px;border-radius:8px;border:none;font-family:'Tajawal',sans-serif;font-weight:700;font-size:14.5px;cursor:pointer;}
+  .btn-primary{background:var(--rust);color:#fff;}
+  .btn-primary:hover{background:var(--rust-deep);}
+  .btn-ghost{background:transparent;border:1.5px solid var(--line);color:var(--ink);}
+
+  .hero{padding:56px 6vw 20px;text-align:center;}
+  .hero h1{font-size:38px;max-width:20ch;margin:0 auto 14px;font-weight:800;}
+  .hero p{color:var(--ink-soft);max-width:48ch;margin:0 auto 30px;font-size:16.5px;}
+  .search-bar{
+    max-width:640px;margin:0 auto;display:flex;gap:8px;background:var(--panel);
+    border:1px solid var(--line);border-radius:12px;padding:10px;
+  }
+  .search-bar input{flex:1;border:none;padding:10px 14px;font-family:'Tajawal',sans-serif;font-size:15px;background:transparent;}
+  .search-bar input:focus{outline:none;}
+
+  .services{padding:40px 6vw;}
+  .service-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:14px;max-width:1000px;margin:0 auto;}
+  .service-tile{
+    background:var(--panel);border:1px solid var(--line);border-radius:14px;
+    padding:20px 10px;text-align:center;cursor:pointer;transition:.15s;
+  }
+  .service-tile:hover, .service-tile.active{border-color:var(--rust);background:#FCEEE7;}
+  .service-tile .icon{font-size:26px;margin-bottom:8px;display:block;}
+  .service-tile .lbl{font-size:13px;font-weight:500;color:var(--ink);}
+
+  section.list{padding:20px 6vw 56px;}
+  .section-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:22px;}
+  .section-head h2{font-size:23px;margin:0;}
+  .muted{color:var(--ink-soft);font-size:14px;}
+
+  .provider-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;}
+  .provider-card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:12px;}
+  .p-top{display:flex;gap:12px;align-items:center;}
+  .avatar{width:52px;height:52px;border-radius:12px;background:linear-gradient(160deg,var(--steel),#20423F);display:flex;align-items:center;justify-content:center;color:#fff;font-family:'Cairo',sans-serif;font-weight:700;flex-shrink:0;}
+  .p-name{font-weight:700;font-size:15.5px;}
+  .p-spec{color:var(--rust-deep);font-size:13px;font-weight:500;}
+  .p-meta{display:flex;gap:14px;font-size:13px;color:var(--ink-soft);border-top:1px dashed var(--line);padding-top:10px;}
+  .price-tag{background:#F1EAD9;color:var(--ink);padding:4px 10px;border-radius:6px;font-size:12.5px;font-weight:700;display:inline-block;width:fit-content;}
+  .p-actions{display:flex;gap:8px;}
+  .p-actions .btn{flex:1;padding:9px;font-size:13.5px;}
+
+  .track-band{
+    background:var(--steel);border-radius:18px;margin:0 6vw 56px;padding:38px;color:#fff;
+  }
+  .track-band h2{margin:0 0 22px;font-size:22px;}
+  .track-steps{display:flex;justify-content:space-between;position:relative;}
+  .track-steps::before{content:"";position:absolute;top:15px;right:5%;left:5%;height:2px;background:rgba(255,255,255,.25);}
+  .t-step{position:relative;z-index:1;flex:1;text-align:center;}
+  .t-dot{width:32px;height:32px;border-radius:50%;background:#fff;color:var(--steel);display:flex;align-items:center;justify-content:center;margin:0 auto 10px;font-family:'Cairo',sans-serif;font-weight:800;font-size:14px;}
+  .t-step.done .t-dot{background:var(--rust);color:#fff;}
+  .t-label{font-size:13px;color:#DCE9E6;max-width:14ch;margin:0 auto;}
+
+  .cta-band{
+    background:var(--rust-deep);border-radius:18px;margin:0 6vw 56px;padding:40px;
+    display:flex;justify-content:space-between;align-items:center;color:#fff;gap:20px;flex-wrap:wrap;
+  }
+  .cta-band h2{margin:0 0 6px;font-size:22px;}
+  .cta-band p{margin:0;color:#F3D9CC;font-size:14px;}
+  .cta-band .btn-primary{background:#fff;color:var(--rust-deep);}
+
+  footer{padding:24px 6vw;border-top:1px solid var(--line);color:var(--ink-soft);font-size:13.5px;display:flex;justify-content:space-between;}
+
+  .overlay{position:fixed;inset:0;background:rgba(43,36,32,.45);display:none;align-items:center;justify-content:center;z-index:100;padding:20px;}
+  .overlay.show{display:flex;}
+  .modal{background:var(--panel);border-radius:16px;max-width:420px;width:100%;padding:26px;position:relative;}
+  .modal h3{margin:0 0 4px;font-size:18px;}
+  .modal .sub{color:var(--ink-soft);font-size:13.5px;margin-bottom:16px;}
+  .modal-close{position:absolute;top:14px;left:14px;background:none;border:none;font-size:20px;color:var(--ink-soft);cursor:pointer;}
+  .field{margin-bottom:14px;}
+  .field label{display:block;font-size:13px;margin-bottom:6px;color:var(--ink-soft);}
+  .field input, .field select{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:8px;font-family:'Tajawal',sans-serif;font-size:14.5px;background:#FCFAF5;}
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--rust-deep);color:#fff;padding:14px 22px;border-radius:10px;font-size:14.5px;opacity:0;transition:.25s;z-index:200;}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+  @media(max-width:880px){
+    nav{display:none;}
+    .service-grid{grid-template-columns:repeat(3,1fr);}
+    .provider-grid{grid-template-columns:1fr;}
+    .track-steps{flex-direction:column;gap:16px;}
+    .track-steps::before{display:none;}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand"><span class="mark">خ</span> خدماتي</div>
+  <nav>
+    <a href="#services">الخدمات</a>
+    <a href="#providers">الحرفيون</a>
+    <a href="#join">انضم كحرفي</a>
+  </nav>
+  <button class="btn btn-primary" id="join-top">انضم كحرفي</button>
+</header>
+
+<section class="hero">
+  <h1>حرفي موثوق لباب دارك، فدقائق</h1>
+  <p>سباك، كهربائي، نجار، أو عامل تنظيف — احجز خدمتك بسرعة وبثقة، مع تقييمات حقيقية وأسعار واضحة من البداية.</p>
+  <div class="search-bar">
+    <input type="text" id="search-input" placeholder="وش كتقلق؟ مثلاً: تسرب ماء، انقطاع كهرباء...">
+    <button class="btn btn-primary" id="search-btn">بحث</button>
+  </div>
+</section>
+
+<section class="services" id="services">
+  <div class="service-grid" id="service-grid">
+    <div class="service-tile active" data-cat="الكل"><span class="icon">🧰</span><span class="lbl">الكل</span></div>
+    <div class="service-tile" data-cat="سباكة"><span class="icon">🚿</span><span class="lbl">سباكة</span></div>
+    <div class="service-tile" data-cat="كهرباء"><span class="icon">💡</span><span class="lbl">كهرباء</span></div>
+    <div class="service-tile" data-cat="نجارة"><span class="icon">🪚</span><span class="lbl">نجارة</span></div>
+    <div class="service-tile" data-cat="تنظيف"><span class="icon">🧹</span><span class="lbl">تنظيف</span></div>
+    <div class="service-tile" data-cat="دهن"><span class="icon">🎨</span><span class="lbl">دهن وبويّة</span></div>
+    <div class="service-tile" data-cat="تكييف"><span class="icon">❄️</span><span class="lbl">تكييف</span></div>
+  </div>
+</section>
+
+<section class="list" id="providers">
+  <div class="section-head">
+    <h2>حرفيون متاحون قريب منك</h2>
+    <span class="muted" id="result-count">9 نتائج</span>
+  </div>
+  <div class="provider-grid" id="provider-grid"></div>
+</section>
+
+<div class="track-band">
+  <h2>تتبع طلبك خطوة بخطوة</h2>
+  <div class="track-steps">
+    <div class="t-step done"><div class="t-dot">✓</div><div class="t-label">تم تأكيد الطلب</div></div>
+    <div class="t-step done"><div class="t-dot">✓</div><div class="t-label">الحرفي فالطريق</div></div>
+    <div class="t-step"><div class="t-dot">3</div><div class="t-label">جاري تنفيذ الخدمة</div></div>
+    <div class="t-step"><div class="t-dot">4</div><div class="t-label">تم الإنجاز والتقييم</div></div>
+  </div>
+</div>
+
+<div class="cta-band" id="join">
+  <div>
+    <h2>حرفي وكتبغي زبناء أكثر؟</h2>
+    <p>انضم لخدماتي، عرّف بخدماتك، واستقبل طلبات من زبناء قريبين منك مباشرة.</p>
+  </div>
+  <button class="btn btn-primary" id="join-bottom">إنشاء حساب حرفي</button>
+</div>
+
+<footer>
+  <span>© 2026 خدماتي — نموذج تجريبي</span>
+  <span>هذا عرض توضيحي، البيانات غير حقيقية</span>
+</footer>
+
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <button class="modal-close" id="modal-close">×</button>
+    <h3 id="modal-title">حجز خدمة</h3>
+    <div class="sub" id="modal-sub"></div>
+    <div class="field">
+      <label>عنوانك</label>
+      <input type="text" id="addr-input" placeholder="مثلاً: شارع الحسن الثاني، الدار البيضاء">
+    </div>
+    <div class="field">
+      <label>الوقت المفضل</label>
+      <select id="time-select">
+        <option>اليوم — فأقرب وقت</option>
+        <option>اليوم — بعد الظهر</option>
+        <option>غدا — الصباح</option>
+        <option>غدا — بعد الظهر</option>
+      </select>
+    </div>
+    <button class="btn btn-primary" style="width:100%" id="confirm-btn">تأكيد الطلب</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const providers = [
+  {name:"الحاج مصطفى", cat:"سباكة", city:"الدار البيضاء", rating:"4.8", price:"150 درهم/تدخل", jobs:"320 مهمة"},
+  {name:"رشيد الكهربائي", cat:"كهرباء", city:"الرباط", rating:"4.9", price:"120 درهم/تدخل", jobs:"280 مهمة"},
+  {name:"عبد الله النجار", cat:"نجارة", city:"مراكش", rating:"4.7", price:"200 درهم/تدخل", jobs:"150 مهمة"},
+  {name:"فاطمة للتنظيف", cat:"تنظيف", city:"الدار البيضاء", rating:"4.9", price:"100 درهم/ساعة", jobs:"410 مهمة"},
+  {name:"يونس البويّاي", cat:"دهن", city:"فاس", rating:"4.6", price:"80 درهم/م²", jobs:"95 مهمة"},
+  {name:"سعيد التكييف", cat:"تكييف", city:"الدار البيضاء", rating:"4.8", price:"180 درهم/تدخل", jobs:"210 مهمة"},
+  {name:"كريم السباك", cat:"سباكة", city:"مراكش", rating:"4.5", price:"140 درهم/تدخل", jobs:"130 مهمة"},
+  {name:"حسن الكهربائي", cat:"كهرباء", city:"فاس", rating:"4.7", price:"110 درهم/تدخل", jobs:"175 مهمة"},
+  {name:"نعيمة للتنظيف", cat:"تنظيف", city:"الرباط", rating:"4.8", price:"90 درهم/ساعة", jobs:"260 مهمة"},
+];
+
+const grid = document.getElementById('provider-grid');
+const resultCount = document.getElementById('result-count');
+let currentCat = "الكل";
+let currentSearch = "";
+
+function initials(name){
+  return name.trim().split(' ').slice(0,2).map(p=>p[0]).join('');
+}
+
+function render(){
+  const filtered = providers.filter(p=>{
+    const matchCat = currentCat === "الكل" || p.cat === currentCat;
+    const matchSearch = (p.name+p.cat).includes(currentSearch);
+    return matchCat && matchSearch;
+  });
+  resultCount.textContent = filtered.length + " نتائج";
+  grid.innerHTML = filtered.map(p => `
+    <div class="provider-card">
+      <div class="p-top">
+        <div class="avatar">${initials(p.name)}</div>
+        <div>
+          <div class="p-name">${p.name}</div>
+          <div class="p-spec">${p.cat} · ${p.city}</div>
+        </div>
+      </div>
+      <span class="price-tag">${p.price}</span>
+      <div class="p-meta">
+        <span>⭐ ${p.rating}</span>
+        <span>${p.jobs}</span>
+      </div>
+      <div class="p-actions">
+        <button class="btn btn-primary" onclick="openModal('${p.name}','${p.cat}')">احجز الآن</button>
+        <button class="btn btn-ghost">التفاصيل</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+document.querySelectorAll('.service-tile').forEach(tile=>{
+  tile.addEventListener('click', ()=>{
+    document.querySelectorAll('.service-tile').forEach(t=>t.classList.remove('active'));
+    tile.classList.add('active');
+    currentCat = tile.dataset.cat;
+    render();
+  });
+});
+
+document.getElementById('search-btn').addEventListener('click', ()=>{
+  currentSearch = document.getElementById('search-input').value.trim();
+  render();
+});
+document.getElementById('search-input').addEventListener('keydown', e=>{
+  if(e.key==='Enter'){ currentSearch = e.target.value.trim(); render(); }
+});
+
+const overlay = document.getElementById('overlay');
+function openModal(name, cat){
+  document.getElementById('modal-title').textContent = "حجز خدمة مع " + name;
+  document.getElementById('modal-sub').textContent = cat;
+  document.getElementById('addr-input').value = "";
+  overlay.classList.add('show');
+}
+document.getElementById('modal-close').addEventListener('click', ()=> overlay.classList.remove('show'));
+overlay.addEventListener('click', e=>{ if(e.target===overlay) overlay.classList.remove('show'); });
+
+document.getElementById('confirm-btn').addEventListener('click', ()=>{
+  const addr = document.getElementById('addr-input').value.trim();
+  if(!addr){ showToast("الرجاء إدخال عنوانك أولاً"); return; }
+  const time = document.getElementById('time-select').value;
+  overlay.classList.remove('show');
+  showToast("تم تأكيد طلبك — " + time + " ✅");
+});
+
+function showToast(msg){
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(()=> toast.classList.remove('show'), 2600);
+}
+
+document.getElementById('join-top').addEventListener('click', ()=> showToast("نموذج تسجيل الحرفيين — قريباً"));
+document.getElementById('join-bottom').addEventListener('click', ()=> showToast("نموذج تسجيل الحرفيين — قريباً"));
+
+render();
+</script>
+
+</body>
+</html>
