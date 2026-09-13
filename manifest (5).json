@@ -1,0 +1,21 @@
+{
+  "name": "Khadamati",
+  "short_name": "Khadamati",
+  "description": "حجز حرفيين موثوقين بضغطة",
+  "start_url": "https://mldbj26937vbjd793hdi-a11y.github.io/Khadamati-/",
+  "scope": "https://mldbj26937vbjd793hdi-a11y.github.io/Khadamati-/",
+  "display": "standalone",
+  "orientation": "natural",
+  "lang": "ar",
+  "dir": "rtl",
+  "background_color": "#F6F3EC",
+  "theme_color": "#B5502D",
+  "icons": [
+    {
+      "src": "https://mldbj26937vbjd793hdi-a11y.github.io/Khadamati-/khadamati-icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
