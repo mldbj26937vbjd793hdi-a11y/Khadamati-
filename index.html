@@ -31,7 +31,7 @@
     position:sticky;top:0;background:var(--bg);z-index:50;
   }
   .brand{font-size:21px;font-weight:800;color:var(--rust-deep);display:flex;align-items:center;gap:10px;}
-  .brand .mark{width:32px;height:32px;border-radius:8px;background:var(--rust);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;}
+  .brand .mark{width:32px;height:32px;border-radius:50%;background:linear-gradient(160deg,var(--rust),#7C371D);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;box-shadow:0 1px 3px rgba(0,0,0,.15);}
   nav{display:flex;gap:26px;font-size:15px;color:var(--ink-soft);}
   .btn{padding:10px 20px;border-radius:8px;border:none;font-family:'Tajawal',sans-serif;font-weight:700;font-size:14.5px;cursor:pointer;}
   .btn-primary{background:var(--rust);color:#fff;}
@@ -124,7 +124,7 @@
     position:fixed;inset:0;z-index:9999;
     background:linear-gradient(160deg,var(--rust),var(--rust-deep));
     display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;
-    transition:opacity .5s ease, visibility .5s ease;
+    transition:opacity .7s cubic-bezier(.4,0,.2,1), visibility .7s;
   }
   #splash.hide{opacity:0;visibility:hidden;pointer-events:none;}
   #splash svg{width:104px;height:104px;animation:splashPop .7s cubic-bezier(.34,1.56,.64,1) both;}
@@ -148,6 +148,13 @@
   }
   @keyframes spin{ to{ transform:rotate(360deg); } }
 
+  /* App content: crossfades in as splash fades out */
+  #app-content{
+    opacity:0;transform:translateY(14px);
+    transition:opacity .8s cubic-bezier(.4,0,.2,1), transform .8s cubic-bezier(.4,0,.2,1);
+  }
+  #app-content.show{opacity:1;transform:translateY(0);}
+
   /* ---------- Offline banner ---------- */
   #offline-banner{
     position:fixed;top:0;left:0;right:0;z-index:9998;
@@ -169,14 +176,21 @@
 
 <div id="splash">
   <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-    <rect x="0" y="0" width="512" height="512" rx="112" fill="#B5502D"/>
+    <defs>
+      <linearGradient id="splashGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#B5502D"/>
+        <stop offset="100%" stop-color="#7C371D"/>
+      </linearGradient>
+    </defs>
+    <circle cx="256" cy="256" r="256" fill="url(#splashGrad)"/>
+    <circle cx="256" cy="256" r="235" fill="none" stroke="#ffffff" stroke-opacity="0.18" stroke-width="4"/>
     <g transform="translate(256,256) rotate(-40)">
       <path d="M -150 0 a 46 46 0 1 1 0 0.1 L -60 0 L -60 -22 L 60 -22 L 60 -60 L 120 -60 a 46 46 0 1 1 0 120 L 120 60 L 60 60 L 60 22 L -60 22 L -60 0 Z" fill="#FAF6EF"/>
       <path d="M -196 0 a 46 46 0 0 0 40 40 l 20 -20 l -20 -20 a 46 46 0 0 0 -40 0 Z" fill="#B5502D"/>
-      <circle cx="-150" cy="0" r="24" fill="#B5502D"/>
-      <circle cx="150" cy="0" r="30" fill="#B5502D"/>
+      <circle cx="-150" cy="0" r="24" fill="#96401F"/>
+      <circle cx="150" cy="0" r="30" fill="#96401F"/>
     </g>
-    <circle cx="378" cy="378" r="34" fill="#3E6B4F" stroke="#FAF6EF" stroke-width="8"/>
+    <circle cx="366" cy="366" r="30" fill="#3E6B4F" stroke="#FAF6EF" stroke-width="7"/>
   </svg>
   <div class="splash-name">خدماتي</div>
   <div class="splash-ring"></div>
@@ -184,6 +198,7 @@
 
 <div id="offline-banner">⚠️ لا يوجد اتصال بالإنترنت</div>
 
+<div id="app-content">
 <header>
   <div class="brand"><span class="mark">خ</span> خدماتي</div>
   <nav>
@@ -245,6 +260,7 @@
   <span>© 2026 خدماتي — نموذج تجريبي</span>
   <span>هذا عرض توضيحي، البيانات غير حقيقية</span>
 </footer>
+</div><!-- /app-content -->
 
 <!-- Booking modal (existing) -->
 <div class="overlay" id="overlay">
@@ -527,10 +543,11 @@ document.getElementById('su-submit').addEventListener('click', async ()=>{
 // ---------- Init render ----------
 render();
 
-// Splash screen: hide after content is ready
+// Splash screen: crossfade into app content
 window.addEventListener('load', ()=>{
   setTimeout(()=>{
     document.getElementById('splash').classList.add('hide');
+    document.getElementById('app-content').classList.add('show');
   }, 1100);
 });
 
