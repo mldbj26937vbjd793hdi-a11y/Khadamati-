@@ -38,6 +38,10 @@
   .btn-primary:hover{background:var(--rust-deep);}
   .btn-ghost{background:transparent;border:1.5px solid var(--line);color:var(--ink);}
   .btn:disabled{opacity:.6;cursor:not-allowed;}
+  #header-actions{display:flex;align-items:center;gap:10px;}
+  .user-chip{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--ink);}
+  .user-chip .u-avatar{width:30px;height:30px;border-radius:50%;background:linear-gradient(160deg,var(--steel),#20423F);color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Cairo',sans-serif;font-weight:700;font-size:12.5px;flex-shrink:0;}
+  .link-btn{background:none;border:none;color:var(--rust-deep);font-family:'Tajawal',sans-serif;font-weight:700;font-size:13.5px;cursor:pointer;padding:0;text-decoration:underline;}
 
   .hero{padding:56px 6vw 20px;text-align:center;}
   .hero h1{font-size:38px;max-width:20ch;margin:0 auto 14px;font-weight:800;}
@@ -206,7 +210,10 @@
     <a href="#providers">الحرفيون</a>
     <a href="#join">انضم كحرفي</a>
   </nav>
-  <button class="btn btn-primary" id="join-top">انضم كحرفي</button>
+  <div id="header-actions">
+    <button class="btn btn-ghost" id="login-btn">تسجيل الدخول</button>
+    <button class="btn btn-primary" id="join-top">انضم كحرفي</button>
+  </div>
 </header>
 
 <section class="hero">
@@ -330,6 +337,36 @@
     <button class="btn btn-primary" style="width:100%" id="su-submit">
       <span id="su-submit-text">تسجيل</span>
     </button>
+    <div style="text-align:center;margin-top:14px;font-size:13.5px;color:var(--ink-soft);">
+      عندك حساب من قبل؟ <button class="link-btn" id="switch-to-login">سجل الدخول</button>
+    </div>
+  </div>
+</div>
+
+<!-- Login modal (NEW: Firebase Auth sign-in) -->
+<div class="overlay" id="login-overlay">
+  <div class="modal">
+    <button class="modal-close" id="login-close">×</button>
+    <h3>تسجيل الدخول</h3>
+    <div class="sub">دخلي بحسابك باش تكملي فين وقفتي</div>
+
+    <div class="field">
+      <label>البريد الإلكتروني</label>
+      <input type="email" id="li-email" placeholder="example@email.com">
+    </div>
+    <div class="field">
+      <label>كلمة السر</label>
+      <input type="password" id="li-password" placeholder="كلمة السر ديالك">
+    </div>
+
+    <div class="field-error" id="li-general-error"></div>
+
+    <button class="btn btn-primary" style="width:100%" id="li-submit">
+      <span id="li-submit-text">دخول</span>
+    </button>
+    <div style="text-align:center;margin-top:14px;font-size:13.5px;color:var(--ink-soft);">
+      ماعندكش حساب؟ <button class="link-btn" id="switch-to-signup">سجلي كحرفي</button>
+    </div>
   </div>
 </div>
 
@@ -477,6 +514,10 @@ function authErrorToArabic(error){
     'auth/invalid-email': 'صيغة البريد الإلكتروني غير صحيحة',
     'auth/weak-password': 'كلمة السر ضعيفة، خاصها 6 أحرف على الأقل',
     'auth/network-request-failed': 'تأكدي من الاتصال بالإنترنت وحاولي مرة أخرى',
+    'auth/user-not-found': 'ماكاينش حساب بهاد البريد الإلكتروني',
+    'auth/wrong-password': 'كلمة السر غير صحيحة',
+    'auth/invalid-credential': 'البريد الإلكتروني أو كلمة السر غير صحيحين',
+    'auth/too-many-requests': 'محاولات كتيرة، انتظري شوية وعاودي',
   };
   return map[error.code] || 'وقع خطأ، حاولي مرة أخرى';
 }
@@ -537,6 +578,91 @@ document.getElementById('su-submit').addEventListener('click', async ()=>{
   }finally{
     submitBtn.disabled = false;
     submitText.textContent = 'تسجيل';
+  }
+});
+
+// ---------- Login modal (NEW: Firebase Auth sign-in) ----------
+const loginOverlay = document.getElementById('login-overlay');
+
+function openLogin(){
+  document.getElementById('li-email').value = "";
+  document.getElementById('li-password').value = "";
+  document.getElementById('li-general-error').classList.remove('show');
+  document.getElementById('li-general-error').textContent = "";
+  loginOverlay.classList.add('show');
+}
+document.getElementById('login-btn').addEventListener('click', openLogin);
+document.getElementById('login-close').addEventListener('click', ()=> loginOverlay.classList.remove('show'));
+loginOverlay.addEventListener('click', e=>{ if(e.target===loginOverlay) loginOverlay.classList.remove('show'); });
+
+// Switch between signup <-> login modals
+document.getElementById('switch-to-login').addEventListener('click', ()=>{
+  signupOverlay.classList.remove('show');
+  openLogin();
+});
+document.getElementById('switch-to-signup').addEventListener('click', ()=>{
+  loginOverlay.classList.remove('show');
+  openSignup();
+});
+
+document.getElementById('li-submit').addEventListener('click', async ()=>{
+  const email = document.getElementById('li-email').value.trim();
+  const password = document.getElementById('li-password').value;
+  const generalError = document.getElementById('li-general-error');
+  generalError.classList.remove('show');
+  generalError.textContent = "";
+
+  if(!email || !password){
+    generalError.textContent = "الرجاء تعمير البريد الإلكتروني وكلمة السر";
+    generalError.classList.add('show');
+    return;
+  }
+
+  const submitBtn = document.getElementById('li-submit');
+  const submitText = document.getElementById('li-submit-text');
+  submitBtn.disabled = true;
+  submitText.innerHTML = 'جاري الدخول... <span class="spinner"></span>';
+
+  try{
+    await auth.signInWithEmailAndPassword(email, password);
+    loginOverlay.classList.remove('show');
+    showToast("مرحباً بعودتك ✅", true);
+  }catch(error){
+    generalError.textContent = authErrorToArabic(error);
+    generalError.classList.add('show');
+  }finally{
+    submitBtn.disabled = false;
+    submitText.textContent = 'دخول';
+  }
+});
+
+// ---------- Auth state: update header when user logs in/out ----------
+const headerActions = document.getElementById('header-actions');
+const loggedOutHTML = headerActions.innerHTML;
+
+auth.onAuthStateChanged(async (user)=>{
+  if(user){
+    let displayName = user.email;
+    try{
+      const doc = await db.collection('craftsmen').doc(user.uid).get();
+      if(doc.exists && doc.data().name) displayName = doc.data().name;
+    }catch(e){ /* ignore lookup errors, fall back to email */ }
+
+    headerActions.innerHTML = `
+      <div class="user-chip">
+        <div class="u-avatar">${initials(displayName)}</div>
+        <span>${displayName}</span>
+      </div>
+      <button class="btn btn-ghost" id="logout-btn">تسجيل الخروج</button>
+    `;
+    document.getElementById('logout-btn').addEventListener('click', ()=>{
+      auth.signOut();
+      showToast("تم تسجيل الخروج");
+    });
+  } else {
+    headerActions.innerHTML = loggedOutHTML;
+    document.getElementById('login-btn').addEventListener('click', openLogin);
+    document.getElementById('join-top').addEventListener('click', openSignup);
   }
 });
 
