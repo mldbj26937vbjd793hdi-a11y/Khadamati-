@@ -43,6 +43,51 @@
   .user-chip .u-avatar{width:30px;height:30px;border-radius:50%;background:linear-gradient(160deg,var(--steel),#20423F);color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Cairo',sans-serif;font-weight:700;font-size:12.5px;flex-shrink:0;}
   .link-btn{background:none;border:none;color:var(--rust-deep);font-family:'Tajawal',sans-serif;font-weight:700;font-size:13.5px;cursor:pointer;padding:0;text-decoration:underline;}
 
+  /* ---------- Hamburger icon ---------- */
+  .icon-btn{
+    width:38px;height:38px;border-radius:9px;border:1px solid var(--line);
+    background:var(--panel);font-size:18px;color:var(--ink);cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+  }
+
+  /* ---------- Side drawer ---------- */
+  #drawer-overlay{
+    position:fixed;inset:0;background:rgba(43,36,32,.45);z-index:300;
+    opacity:0;visibility:hidden;transition:opacity .3s ease, visibility .3s ease;
+  }
+  #drawer-overlay.show{opacity:1;visibility:visible;}
+  #drawer{
+    position:fixed;top:0;right:0;bottom:0;width:280px;max-width:82vw;
+    background:var(--panel);z-index:301;box-shadow:-6px 0 24px rgba(0,0,0,.12);
+    transform:translateX(100%);transition:transform .35s cubic-bezier(.4,0,.2,1);
+    display:flex;flex-direction:column;overflow-y:auto;
+  }
+  #drawer.show{transform:translateX(0);}
+  .drawer-head{padding:22px 20px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;}
+  .drawer-head .brand{font-size:18px;}
+  .drawer-nav{padding:10px 0;flex:1;}
+  .drawer-item{
+    display:flex;align-items:center;gap:12px;width:100%;text-align:right;
+    padding:13px 20px;border:none;background:none;font-family:'Tajawal',sans-serif;
+    font-size:15px;color:var(--ink);cursor:pointer;
+  }
+  .drawer-item:hover{background:var(--bg);}
+  .drawer-item .d-icon{font-size:18px;width:22px;text-align:center;}
+  .drawer-sep{height:1px;background:var(--line);margin:8px 0;}
+  .drawer-foot{padding:16px 20px;font-size:12px;color:var(--ink-soft);border-top:1px solid var(--line);}
+
+  /* ---------- Star rating ---------- */
+  .star-picker{display:flex;gap:6px;justify-content:center;font-size:32px;margin:6px 0 16px;direction:ltr;}
+  .star-picker span{cursor:pointer;color:var(--line);transition:.1s;}
+  .star-picker span.on{color:#F0A93A;}
+  .review-item{border-bottom:1px solid var(--line);padding:12px 0;}
+  .review-item:last-child{border-bottom:none;}
+  .review-stars{color:#F0A93A;font-size:13px;}
+  .review-name{font-weight:700;font-size:13.5px;}
+  .review-text{font-size:13.5px;color:var(--ink-soft);margin-top:4px;}
+  .about-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--line);font-size:14px;}
+  .about-row:last-child{border-bottom:none;}
+
   .hero{padding:56px 6vw 20px;text-align:center;}
   .hero h1{font-size:38px;max-width:20ch;margin:0 auto 14px;font-weight:800;}
   .hero p{color:var(--ink-soft);max-width:48ch;margin:0 auto 30px;font-size:16.5px;}
@@ -204,6 +249,7 @@
 
 <div id="app-content">
 <header>
+  <button class="icon-btn" id="menu-btn" aria-label="القائمة">☰</button>
   <div class="brand"><span class="mark">خ</span> خدماتي</div>
   <nav>
     <a href="#services">الخدمات</a>
@@ -367,6 +413,79 @@
     <div style="text-align:center;margin-top:14px;font-size:13.5px;color:var(--ink-soft);">
       ماعندكش حساب؟ <button class="link-btn" id="switch-to-signup">سجلي كحرفي</button>
     </div>
+  </div>
+</div>
+
+<!-- Side drawer menu (NEW) -->
+<div id="drawer-overlay"></div>
+<div id="drawer">
+  <div class="drawer-head">
+    <span class="mark" style="width:32px;height:32px;border-radius:50%;background:linear-gradient(160deg,var(--rust),#7C371D);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;">خ</span>
+    <div class="brand">خدماتي</div>
+  </div>
+  <div class="drawer-nav">
+    <button class="drawer-item" data-scroll="#services"><span class="d-icon">🧰</span> الخدمات</button>
+    <button class="drawer-item" data-scroll="#providers"><span class="d-icon">👷</span> الحرفيون</button>
+    <div class="drawer-sep"></div>
+    <button class="drawer-item" id="drawer-ratings"><span class="d-icon">⭐</span> التقييمات</button>
+    <button class="drawer-item" id="drawer-about"><span class="d-icon">ℹ️</span> حول التطبيق</button>
+    <button class="drawer-item" id="drawer-settings"><span class="d-icon">⚙️</span> الإعدادات</button>
+  </div>
+  <div class="drawer-foot">خدماتي — الإصدار 1.0.0</div>
+</div>
+
+<!-- About modal (NEW) -->
+<div class="overlay" id="about-overlay">
+  <div class="modal">
+    <button class="modal-close" id="about-close">×</button>
+    <h3>حول التطبيق</h3>
+    <div class="sub">حجز حرفيين موثوقين بضغطة</div>
+    <div class="about-row"><span>الاسم</span><span>خدماتي</span></div>
+    <div class="about-row"><span>الإصدار</span><span>1.0.0</span></div>
+    <div class="about-row"><span>الوصف</span><span>منصة لحجز حرفيين محليين موثوقين</span></div>
+    <div class="about-row"><span>التواصل</span><span>support@khadamati.app</span></div>
+    <button class="btn btn-ghost" style="width:100%;margin-top:16px" onclick="document.getElementById('about-overlay').classList.remove('show')">إغلاق</button>
+  </div>
+</div>
+
+<!-- Settings modal (NEW) -->
+<div class="overlay" id="settings-overlay">
+  <div class="modal">
+    <button class="modal-close" id="settings-close">×</button>
+    <h3>الإعدادات</h3>
+    <div id="settings-logged-out">
+      <div class="sub">سجلي الدخول باش توصلي لإعدادات حسابك</div>
+      <button class="btn btn-primary" style="width:100%" id="settings-goto-login">تسجيل الدخول</button>
+    </div>
+    <div id="settings-logged-in" style="display:none;">
+      <div class="sub" id="settings-email"></div>
+      <div class="field-error" id="settings-error"></div>
+      <button class="btn btn-ghost" style="width:100%;margin-bottom:10px" id="settings-reset-pw">إعادة تعيين كلمة السر</button>
+      <button class="btn btn-ghost" style="width:100%;margin-bottom:10px" id="settings-logout">تسجيل الخروج</button>
+      <button class="btn" style="width:100%;background:#F1D9D3;color:var(--rust-deep)" id="settings-delete">حذف الحساب نهائياً</button>
+    </div>
+  </div>
+</div>
+
+<!-- Ratings modal (NEW: real Firestore reviews) -->
+<div class="overlay" id="ratings-overlay">
+  <div class="modal">
+    <button class="modal-close" id="ratings-close">×</button>
+    <h3>قيّمي التطبيق</h3>
+    <div class="sub">رأيك كيهمنا باش نطورو خدماتي</div>
+    <div class="star-picker" id="star-picker">
+      <span data-v="1">★</span><span data-v="2">★</span><span data-v="3">★</span><span data-v="4">★</span><span data-v="5">★</span>
+    </div>
+    <div class="field">
+      <textarea id="rv-comment" rows="3" placeholder="اكتبي تعليقك (اختياري)" style="width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:8px;font-family:'Tajawal',sans-serif;font-size:14px;background:#FCFAF5;"></textarea>
+    </div>
+    <div class="field-error" id="rv-error"></div>
+    <button class="btn btn-primary" style="width:100%" id="rv-submit">
+      <span id="rv-submit-text">إرسال التقييم</span>
+    </button>
+    <div class="drawer-sep" style="margin:18px 0"></div>
+    <div class="sub" style="margin-bottom:8px;">آخر التقييمات</div>
+    <div id="reviews-list"><div class="muted">جاري التحميل...</div></div>
   </div>
 </div>
 
@@ -665,6 +784,173 @@ auth.onAuthStateChanged(async (user)=>{
     document.getElementById('join-top').addEventListener('click', openSignup);
   }
 });
+
+// ---------- Side drawer ----------
+const drawer = document.getElementById('drawer');
+const drawerOverlay = document.getElementById('drawer-overlay');
+function openDrawer(){ drawer.classList.add('show'); drawerOverlay.classList.add('show'); }
+function closeDrawer(){ drawer.classList.remove('show'); drawerOverlay.classList.remove('show'); }
+document.getElementById('menu-btn').addEventListener('click', openDrawer);
+drawerOverlay.addEventListener('click', closeDrawer);
+document.querySelectorAll('.drawer-item[data-scroll]').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    closeDrawer();
+    const target = document.querySelector(btn.dataset.scroll);
+    if(target) target.scrollIntoView({behavior:'smooth'});
+  });
+});
+
+// ---------- About modal ----------
+const aboutOverlay = document.getElementById('about-overlay');
+document.getElementById('drawer-about').addEventListener('click', ()=>{
+  closeDrawer();
+  aboutOverlay.classList.add('show');
+});
+document.getElementById('about-close').addEventListener('click', ()=> aboutOverlay.classList.remove('show'));
+aboutOverlay.addEventListener('click', e=>{ if(e.target===aboutOverlay) aboutOverlay.classList.remove('show'); });
+
+// ---------- Settings modal ----------
+const settingsOverlay = document.getElementById('settings-overlay');
+document.getElementById('drawer-settings').addEventListener('click', ()=>{
+  closeDrawer();
+  refreshSettingsView();
+  settingsOverlay.classList.add('show');
+});
+document.getElementById('settings-close').addEventListener('click', ()=> settingsOverlay.classList.remove('show'));
+settingsOverlay.addEventListener('click', e=>{ if(e.target===settingsOverlay) settingsOverlay.classList.remove('show'); });
+
+function refreshSettingsView(){
+  const user = auth.currentUser;
+  document.getElementById('settings-error').classList.remove('show');
+  if(user){
+    document.getElementById('settings-logged-out').style.display = 'none';
+    document.getElementById('settings-logged-in').style.display = 'block';
+    document.getElementById('settings-email').textContent = user.email;
+  } else {
+    document.getElementById('settings-logged-out').style.display = 'block';
+    document.getElementById('settings-logged-in').style.display = 'none';
+  }
+}
+document.getElementById('settings-goto-login').addEventListener('click', ()=>{
+  settingsOverlay.classList.remove('show');
+  openLogin();
+});
+document.getElementById('settings-logout').addEventListener('click', ()=>{
+  auth.signOut();
+  settingsOverlay.classList.remove('show');
+  showToast("تم تسجيل الخروج");
+});
+document.getElementById('settings-reset-pw').addEventListener('click', async ()=>{
+  const user = auth.currentUser;
+  if(!user) return;
+  try{
+    await auth.sendPasswordResetEmail(user.email);
+    showToast("تم إرسال رابط إعادة التعيين لبريدك ✅", true);
+  }catch(error){
+    const errBox = document.getElementById('settings-error');
+    errBox.textContent = authErrorToArabic(error);
+    errBox.classList.add('show');
+  }
+});
+document.getElementById('settings-delete').addEventListener('click', async ()=>{
+  const user = auth.currentUser;
+  if(!user) return;
+  if(!confirm('واش متأكدة؟ هاد العملية غادي تحذف حسابك نهائياً بلا رجعة.')) return;
+  try{
+    await db.collection('craftsmen').doc(user.uid).delete();
+    await user.delete();
+    settingsOverlay.classList.remove('show');
+    showToast("تم حذف حسابك");
+  }catch(error){
+    const errBox = document.getElementById('settings-error');
+    errBox.textContent = 'خاصك تسجلي الدخول من جديد قبل حذف الحساب (لأسباب أمنية)، سجلي الخروج وادخلي مرة أخرى ثم عاودي.';
+    errBox.classList.add('show');
+  }
+});
+
+// ---------- Ratings modal (real Firestore reviews) ----------
+const ratingsOverlay = document.getElementById('ratings-overlay');
+let selectedStars = 0;
+
+document.getElementById('drawer-ratings').addEventListener('click', ()=>{
+  closeDrawer();
+  ratingsOverlay.classList.add('show');
+  loadReviews();
+});
+document.getElementById('ratings-close').addEventListener('click', ()=> ratingsOverlay.classList.remove('show'));
+ratingsOverlay.addEventListener('click', e=>{ if(e.target===ratingsOverlay) ratingsOverlay.classList.remove('show'); });
+
+document.querySelectorAll('#star-picker span').forEach(star=>{
+  star.addEventListener('click', ()=>{
+    selectedStars = parseInt(star.dataset.v);
+    document.querySelectorAll('#star-picker span').forEach(s=>{
+      s.classList.toggle('on', parseInt(s.dataset.v) <= selectedStars);
+    });
+  });
+});
+
+document.getElementById('rv-submit').addEventListener('click', async ()=>{
+  const errBox = document.getElementById('rv-error');
+  errBox.classList.remove('show');
+  if(selectedStars === 0){
+    errBox.textContent = "الرجاء اختيار عدد النجوم أولاً";
+    errBox.classList.add('show');
+    return;
+  }
+  const comment = document.getElementById('rv-comment').value.trim();
+  const user = auth.currentUser;
+
+  const btn = document.getElementById('rv-submit');
+  const btnText = document.getElementById('rv-submit-text');
+  btn.disabled = true;
+  btnText.innerHTML = 'جاري الإرسال... <span class="spinner"></span>';
+
+  try{
+    await db.collection('app_ratings').add({
+      stars: selectedStars,
+      comment: comment,
+      name: user ? (user.email.split('@')[0]) : 'زائر',
+      uid: user ? user.uid : null,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    document.getElementById('rv-comment').value = "";
+    selectedStars = 0;
+    document.querySelectorAll('#star-picker span').forEach(s=> s.classList.remove('on'));
+    showToast("شكراً على تقييمك ✅", true);
+    loadReviews();
+  }catch(error){
+    errBox.textContent = "وقع خطأ، حاولي مرة أخرى";
+    errBox.classList.add('show');
+  }finally{
+    btn.disabled = false;
+    btnText.textContent = 'إرسال التقييم';
+  }
+});
+
+async function loadReviews(){
+  const list = document.getElementById('reviews-list');
+  list.innerHTML = '<div class="muted">جاري التحميل...</div>';
+  try{
+    const snap = await db.collection('app_ratings').orderBy('createdAt','desc').limit(6).get();
+    if(snap.empty){
+      list.innerHTML = '<div class="muted">لا توجد تقييمات بعد، كوني أول وحدة تقيّمي!</div>';
+      return;
+    }
+    list.innerHTML = snap.docs.map(doc=>{
+      const d = doc.data();
+      const stars = '★'.repeat(d.stars) + '☆'.repeat(5-d.stars);
+      return `
+        <div class="review-item">
+          <div class="review-stars">${stars}</div>
+          <div class="review-name">${d.name || 'زائر'}</div>
+          ${d.comment ? `<div class="review-text">${d.comment}</div>` : ''}
+        </div>
+      `;
+    }).join('');
+  }catch(error){
+    list.innerHTML = '<div class="muted">تعذر تحميل التقييمات حالياً</div>';
+  }
+}
 
 // ---------- Init render ----------
 render();
