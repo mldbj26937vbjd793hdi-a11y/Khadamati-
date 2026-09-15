@@ -42,6 +42,7 @@
   .user-chip{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--ink);}
   .user-chip .u-avatar{width:30px;height:30px;border-radius:50%;background:linear-gradient(160deg,var(--steel),#20423F);color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Cairo',sans-serif;font-weight:700;font-size:12.5px;flex-shrink:0;}
   .link-btn{background:none;border:none;color:var(--rust-deep);font-family:'Tajawal',sans-serif;font-weight:700;font-size:13.5px;cursor:pointer;padding:0;text-decoration:underline;}
+  #tab-customer.active, #tab-craftsman.active{background:var(--rust);color:#fff;border-color:var(--rust);}
 
   /* ---------- Hamburger icon ---------- */
   .icon-btn{
@@ -342,8 +343,13 @@
 <div class="overlay" id="signup-overlay">
   <div class="modal">
     <button class="modal-close" id="signup-close">×</button>
-    <h3>إنشاء حساب حرفي</h3>
-    <div class="sub">عمّر معلوماتك باش تبدا تستقبل طلبات من زبناء</div>
+    <h3 id="signup-title">إنشاء حساب</h3>
+    <div class="sub" id="signup-sub">اختاري نوع الحساب باش نبداو</div>
+
+    <div style="display:flex;gap:8px;margin-bottom:18px;">
+      <button class="btn btn-ghost" id="tab-customer" style="flex:1;">حساب زبون</button>
+      <button class="btn btn-ghost" id="tab-craftsman" style="flex:1;">حساب حرفي</button>
+    </div>
 
     <div class="field">
       <label>الاسم الكامل</label>
@@ -358,24 +364,27 @@
       <input type="password" id="su-password" placeholder="6 أحرف على الأقل">
       <div class="field-error" id="su-password-error">كلمة السر خاصها 6 أحرف على الأقل</div>
     </div>
-    <div class="field">
-      <label>المهنة</label>
-      <select id="su-cat">
-        <option value="سباكة">سباكة</option>
-        <option value="كهرباء">كهرباء</option>
-        <option value="نجارة">نجارة</option>
-        <option value="تنظيف">تنظيف</option>
-        <option value="دهن">دهن وبويّة</option>
-        <option value="تكييف">تكييف</option>
-      </select>
-    </div>
-    <div class="field">
-      <label>المدينة</label>
-      <input type="text" id="su-city" placeholder="مثلاً: الدار البيضاء">
-    </div>
-    <div class="field">
-      <label>السعر التقريبي</label>
-      <input type="text" id="su-price" placeholder="مثلاً: 150 درهم/تدخل">
+
+    <div id="craftsman-fields">
+      <div class="field">
+        <label>المهنة</label>
+        <select id="su-cat">
+          <option value="سباكة">سباكة</option>
+          <option value="كهرباء">كهرباء</option>
+          <option value="نجارة">نجارة</option>
+          <option value="تنظيف">تنظيف</option>
+          <option value="دهن">دهن وبويّة</option>
+          <option value="تكييف">تكييف</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>المدينة</label>
+        <input type="text" id="su-city" placeholder="مثلاً: الدار البيضاء">
+      </div>
+      <div class="field">
+        <label>السعر التقريبي</label>
+        <input type="text" id="su-price" placeholder="مثلاً: 150 درهم/تدخل">
+      </div>
     </div>
 
     <div class="field-error" id="su-general-error"></div>
@@ -411,7 +420,7 @@
       <span id="li-submit-text">دخول</span>
     </button>
     <div style="text-align:center;margin-top:14px;font-size:13.5px;color:var(--ink-soft);">
-      ماعندكش حساب؟ <button class="link-btn" id="switch-to-signup">سجلي كحرفي</button>
+      ماعندكش حساب؟ <button class="link-btn" id="switch-to-signup">سجلي حساب جديد</button>
     </div>
   </div>
 </div>
@@ -607,10 +616,25 @@ function showToast(msg, success){
   setTimeout(()=> toast.classList.remove('show'), 2800);
 }
 
-// ---------- Craftsman signup modal (NEW: Firebase Auth + Firestore) ----------
+// ---------- Signup modal (NEW: customer + craftsman account types) ----------
 const signupOverlay = document.getElementById('signup-overlay');
+let signupAccountType = 'customer';
 
-function openSignup(){
+function setSignupTab(type){
+  signupAccountType = type;
+  const isCraftsman = type === 'craftsman';
+  document.getElementById('tab-craftsman').classList.toggle('active', isCraftsman);
+  document.getElementById('tab-customer').classList.toggle('active', !isCraftsman);
+  document.getElementById('craftsman-fields').style.display = isCraftsman ? 'block' : 'none';
+  document.getElementById('signup-title').textContent = isCraftsman ? 'إنشاء حساب حرفي' : 'إنشاء حساب زبون';
+  document.getElementById('signup-sub').textContent = isCraftsman
+    ? 'عمّري معلوماتك باش تبدي تستقبلي طلبات من زبناء'
+    : 'سجلي باش تقدري تحجزي وتتابعي طلباتك';
+}
+document.getElementById('tab-customer').addEventListener('click', ()=> setSignupTab('customer'));
+document.getElementById('tab-craftsman').addEventListener('click', ()=> setSignupTab('craftsman'));
+
+function openSignup(type='customer'){
   document.getElementById('su-name').value = "";
   document.getElementById('su-email').value = "";
   document.getElementById('su-password').value = "";
@@ -619,10 +643,11 @@ function openSignup(){
   document.getElementById('su-password-error').classList.remove('show');
   document.getElementById('su-general-error').classList.remove('show');
   document.getElementById('su-general-error').textContent = "";
+  setSignupTab(type);
   signupOverlay.classList.add('show');
 }
-document.getElementById('join-top').addEventListener('click', openSignup);
-document.getElementById('join-bottom').addEventListener('click', openSignup);
+document.getElementById('join-top').addEventListener('click', ()=> openSignup('craftsman'));
+document.getElementById('join-bottom').addEventListener('click', ()=> openSignup('craftsman'));
 document.getElementById('signup-close').addEventListener('click', ()=> signupOverlay.classList.remove('show'));
 signupOverlay.addEventListener('click', e=>{ if(e.target===signupOverlay) signupOverlay.classList.remove('show'); });
 
@@ -645,6 +670,7 @@ document.getElementById('su-submit').addEventListener('click', async ()=>{
   const name = document.getElementById('su-name').value.trim();
   const email = document.getElementById('su-email').value.trim();
   const password = document.getElementById('su-password').value;
+  const isCraftsman = signupAccountType === 'craftsman';
   const cat = document.getElementById('su-cat').value;
   const city = document.getElementById('su-city').value.trim();
   const price = document.getElementById('su-price').value.trim();
@@ -655,8 +681,8 @@ document.getElementById('su-submit').addEventListener('click', async ()=>{
   generalError.classList.remove('show');
   generalError.textContent = "";
 
-  // Basic validation
-  if(!name || !email || !password || !city || !price){
+  // Basic validation (craftsman fields only required for craftsman accounts)
+  if(!name || !email || !password || (isCraftsman && (!city || !price))){
     generalError.textContent = "الرجاء تعمير جميع الخانات";
     generalError.classList.add('show');
     return;
@@ -676,17 +702,26 @@ document.getElementById('su-submit').addEventListener('click', async ()=>{
     const cred = await auth.createUserWithEmailAndPassword(email, password);
     const uid = cred.user.uid;
 
-    // 2) Save the craftsman's profile in Firestore, in the "craftsmen" collection
-    await db.collection('craftsmen').doc(uid).set({
-      name: name,
-      email: email,
-      cat: cat,
-      city: city,
-      price: price,
-      rating: null,
-      jobs: 0,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
+    if(isCraftsman){
+      // 2a) Save the craftsman's profile in Firestore, in the "craftsmen" collection
+      await db.collection('craftsmen').doc(uid).set({
+        name: name,
+        email: email,
+        cat: cat,
+        city: city,
+        price: price,
+        rating: null,
+        jobs: 0,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    } else {
+      // 2b) Save the customer's profile in Firestore, in the "customers" collection
+      await db.collection('customers').doc(uid).set({
+        name: name,
+        email: email,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    }
 
     signupOverlay.classList.remove('show');
     showToast("تم إنشاء حسابك بنجاح ✅ مرحبا بيك فخدماتي", true);
@@ -763,8 +798,13 @@ auth.onAuthStateChanged(async (user)=>{
   if(user){
     let displayName = user.email;
     try{
-      const doc = await db.collection('craftsmen').doc(user.uid).get();
-      if(doc.exists && doc.data().name) displayName = doc.data().name;
+      const craftsmanDoc = await db.collection('craftsmen').doc(user.uid).get();
+      if(craftsmanDoc.exists && craftsmanDoc.data().name){
+        displayName = craftsmanDoc.data().name;
+      } else {
+        const customerDoc = await db.collection('customers').doc(user.uid).get();
+        if(customerDoc.exists && customerDoc.data().name) displayName = customerDoc.data().name;
+      }
     }catch(e){ /* ignore lookup errors, fall back to email */ }
 
     headerActions.innerHTML = `
@@ -781,7 +821,7 @@ auth.onAuthStateChanged(async (user)=>{
   } else {
     headerActions.innerHTML = loggedOutHTML;
     document.getElementById('login-btn').addEventListener('click', openLogin);
-    document.getElementById('join-top').addEventListener('click', openSignup);
+    document.getElementById('join-top').addEventListener('click', ()=> openSignup('craftsman'));
   }
 });
 
@@ -858,6 +898,7 @@ document.getElementById('settings-delete').addEventListener('click', async ()=>{
   if(!confirm('واش متأكدة؟ هاد العملية غادي تحذف حسابك نهائياً بلا رجعة.')) return;
   try{
     await db.collection('craftsmen').doc(user.uid).delete();
+    await db.collection('customers').doc(user.uid).delete();
     await user.delete();
     settingsOverlay.classList.remove('show');
     showToast("تم حذف حسابك");
