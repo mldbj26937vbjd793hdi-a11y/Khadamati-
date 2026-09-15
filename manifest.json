@@ -1,27 +1,39 @@
 {
-  "name": "Khadamati",
-  "short_name": "Khadamati",
-  "description": "حجز حرفيين موثوقين بضغطة",
+  "الاسم": "خدماتي"
+  "short_name": "خدماتي"
+  "description": "حجز متخصصين موثوقين بضغطة",
   "start_url": "https://mldbj26937vbjd793hdi-a11y.github.io/Khadamati-/",
-  "scope": "https://mldbj26937vbjd793hdi-a11y.github.io/Khadamati-/",
-  "display": "standalone",
-  "orientation": "natural",
+  "النطاق": "https://mldbj26937vbjd793hdi-a11y.github.io/Khadamati-/",
+  "عرض": "مستقل"،
+  "التوجيه": "طبيعي"،
   "lang": "ar",
-  "dir": "rtl",
+  "dir": "rtl"
   "background_color": "#F6F3EC",
   "theme_color": "#B5502D",
-  "icons": [
+  "الأيقونات": [
     {
       "src": "https://mldbj26937vbjd793hdi-a11y.github.io/Khadamati-/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any"
+      "الأحجام": "192x192"،
+      "النوع": "صورة/png"
+      "الغرض": "أي"
     },
     {
       "src": "https://mldbj26937vbjd793hdi-a11y.github.io/Khadamati-/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any"
+      الأحجام: 512 × 512
+      "النوع": "صورة/png"
+      "الغرض": "أي"
+    },
+    {
+      "src": "https://mldbj26937vbjd793hdi-a11y.github.io/Khadamati-/icon-192.png",
+      "الأحجام": "192x192"،
+      "النوع": "صورة/png"
+      "الغرض": "قابل للإخفاء"
+    },
+    {
+      "src": "https://mldbj26937vbjd793hdi-a11y.github.io/Khadamati-/icon-512.png",
+      الأحجام: 512 × 512
+      "النوع": "صورة/png"
+      "الغرض": "قابل للإخفاء"
     }
   ]
 }
