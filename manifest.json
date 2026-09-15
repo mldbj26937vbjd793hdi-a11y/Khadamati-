@@ -24,13 +24,13 @@
       "purpose": "any"
     },
     {
-      "src": "https://mldbj26937vbjd793hdi-a11y.github.io/Khadamati-/icon-192.png",
+      "src": "https://mldbj26937vbjd793hdi-a11y.github.io/Khadamati-/icon-maskable-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "maskable"
     },
     {
-      "src": "https://mldbj26937vbjd793hdi-a11y.github.io/Khadamati-/icon-512.png",
+      "src": "https://mldbj26937vbjd793hdi-a11y.github.io/Khadamati-/icon-maskable-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
