@@ -329,6 +329,7 @@
         <option>غدا — بعد الظهر</option>
       </select>
     </div>
+    <div class="field-error" id="booking-error"></div>
     <button class="btn btn-primary" style="width:100%" id="confirm-btn">تأكيد الطلب</button>
   </div>
 </div>
@@ -430,6 +431,7 @@
     <button class="drawer-item" data-scroll="#services"><span class="d-icon">🧰</span> الخدمات</button>
     <button class="drawer-item" data-scroll="#providers"><span class="d-icon">👷</span> الحرفيون</button>
     <div class="drawer-sep"></div>
+    <button class="drawer-item" id="drawer-bookings"><span class="d-icon">📋</span> طلباتي</button>
     <button class="drawer-item" id="drawer-ratings"><span class="d-icon">⭐</span> التقييمات</button>
     <button class="drawer-item" id="drawer-about"><span class="d-icon">ℹ️</span> حول التطبيق</button>
     <button class="drawer-item" id="drawer-settings"><span class="d-icon">⚙️</span> الإعدادات</button>
@@ -448,6 +450,16 @@
     <div class="about-row"><span>الوصف</span><span>منصة لحجز حرفيين محليين موثوقين</span></div>
     <div class="about-row"><span>التواصل</span><span>support@khadamati.app</span></div>
     <button class="btn btn-ghost" style="width:100%;margin-top:16px" onclick="document.getElementById('about-overlay').classList.remove('show')">إغلاق</button>
+  </div>
+</div>
+
+<!-- My Bookings modal (NEW: real customer bookings from Firestore) -->
+<div class="overlay" id="bookings-overlay">
+  <div class="modal">
+    <button class="modal-close" id="bookings-close">×</button>
+    <h3>طلباتي</h3>
+    <div class="sub">الحجوزات اللي ديرتيها من هاد الحساب</div>
+    <div id="bookings-list"><div class="muted">جاري التحميل...</div></div>
   </div>
 </div>
 
@@ -583,23 +595,69 @@ document.getElementById('search-input').addEventListener('keydown', e=>{
   if(e.key==='Enter'){ currentSearch = e.target.value.trim(); render(); }
 });
 
-// ---------- Booking modal (existing, unchanged) ----------
+// ---------- Booking modal (NEW: requires login, saves to Firestore) ----------
 const overlay = document.getElementById('overlay');
+let bookingProvider = null;
+
 function openModal(name, cat){
+  if(!auth.currentUser){
+    showToast("سجلي الدخول أولاً باش تقدري تحجزي");
+    openLogin();
+    return;
+  }
+  bookingProvider = { name, cat };
   document.getElementById('modal-title').textContent = "حجز خدمة مع " + name;
   document.getElementById('modal-sub').textContent = cat;
   document.getElementById('addr-input').value = "";
+  document.getElementById('booking-error').classList.remove('show');
   overlay.classList.add('show');
 }
 document.getElementById('modal-close').addEventListener('click', ()=> overlay.classList.remove('show'));
 overlay.addEventListener('click', e=>{ if(e.target===overlay) overlay.classList.remove('show'); });
 
-document.getElementById('confirm-btn').addEventListener('click', ()=>{
+document.getElementById('confirm-btn').addEventListener('click', async ()=>{
   const addr = document.getElementById('addr-input').value.trim();
-  if(!addr){ showToast("الرجاء إدخال عنوانك أولاً"); return; }
+  const errBox = document.getElementById('booking-error');
+  errBox.classList.remove('show');
+
+  const user = auth.currentUser;
+  if(!user){
+    errBox.textContent = "سجلي الدخول أولاً باش تقدري تأكدي الحجز";
+    errBox.classList.add('show');
+    return;
+  }
+  if(!addr){
+    errBox.textContent = "الرجاء إدخال عنوانك أولاً";
+    errBox.classList.add('show');
+    return;
+  }
   const time = document.getElementById('time-select').value;
-  overlay.classList.remove('show');
-  showToast("تم تأكيد طلبك — " + time + " ✅", true);
+
+  const btn = document.getElementById('confirm-btn');
+  const originalText = btn.textContent;
+  btn.disabled = true;
+  btn.innerHTML = 'جاري التأكيد... <span class="spinner"></span>';
+
+  try{
+    await db.collection('bookings').add({
+      customerId: user.uid,
+      customerEmail: user.email,
+      providerName: bookingProvider ? bookingProvider.name : '',
+      providerCat: bookingProvider ? bookingProvider.cat : '',
+      address: addr,
+      time: time,
+      status: 'pending',
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    overlay.classList.remove('show');
+    showToast("تم تأكيد طلبك — " + time + " ✅", true);
+  }catch(error){
+    errBox.textContent = "وقع خطأ فتأكيد الطلب، حاولي مرة أخرى";
+    errBox.classList.add('show');
+  }finally{
+    btn.disabled = false;
+    btn.textContent = originalText;
+  }
 });
 
 function showToast(msg, success){
@@ -842,6 +900,69 @@ document.getElementById('drawer-about').addEventListener('click', ()=>{
 });
 document.getElementById('about-close').addEventListener('click', ()=> aboutOverlay.classList.remove('show'));
 aboutOverlay.addEventListener('click', e=>{ if(e.target===aboutOverlay) aboutOverlay.classList.remove('show'); });
+
+// ---------- My Bookings modal (NEW) ----------
+const bookingsOverlay = document.getElementById('bookings-overlay');
+document.getElementById('drawer-bookings').addEventListener('click', ()=>{
+  closeDrawer();
+  bookingsOverlay.classList.add('show');
+  loadMyBookings();
+});
+document.getElementById('bookings-close').addEventListener('click', ()=> bookingsOverlay.classList.remove('show'));
+bookingsOverlay.addEventListener('click', e=>{ if(e.target===bookingsOverlay) bookingsOverlay.classList.remove('show'); });
+
+const bookingStatusLabels = {
+  pending: 'قيد الانتظار',
+  confirmed: 'تم التأكيد',
+  done: 'تم الإنجاز',
+  cancelled: 'ملغي'
+};
+
+async function loadMyBookings(){
+  const list = document.getElementById('bookings-list');
+  const user = auth.currentUser;
+
+  if(!user){
+    list.innerHTML = `
+      <div class="muted" style="margin-bottom:12px;">سجلي الدخول باش تشوفي طلباتك</div>
+      <button class="btn btn-primary" style="width:100%" id="bookings-goto-login">تسجيل الدخول</button>
+    `;
+    document.getElementById('bookings-goto-login').addEventListener('click', ()=>{
+      bookingsOverlay.classList.remove('show');
+      openLogin();
+    });
+    return;
+  }
+
+  list.innerHTML = '<div class="muted">جاري التحميل...</div>';
+  try{
+    const snap = await db.collection('bookings')
+      .where('customerId', '==', user.uid)
+      .orderBy('createdAt', 'desc')
+      .limit(20)
+      .get();
+
+    if(snap.empty){
+      list.innerHTML = '<div class="muted">مازال ماديرتيش أي حجز</div>';
+      return;
+    }
+
+    list.innerHTML = snap.docs.map(doc=>{
+      const d = doc.data();
+      const statusLabel = bookingStatusLabels[d.status] || d.status;
+      return `
+        <div class="review-item">
+          <div class="review-name">${d.providerName || ''} — ${d.providerCat || ''}</div>
+          <div class="review-text">${d.address || ''}</div>
+          <div class="review-text">${d.time || ''}</div>
+          <span class="price-tag" style="margin-top:6px;">${statusLabel}</span>
+        </div>
+      `;
+    }).join('');
+  }catch(error){
+    list.innerHTML = '<div class="muted">تعذر تحميل طلباتك حالياً</div>';
+  }
+}
 
 // ---------- Settings modal ----------
 const settingsOverlay = document.getElementById('settings-overlay');
