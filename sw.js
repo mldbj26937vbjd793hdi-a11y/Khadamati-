@@ -1,7 +1,7 @@
 // Service Worker بسيط لخدماتي — كيخلي الموقع "قابل للتثبيت" (installable)
 // وكيحفظ الصفحة الرئيسية للعمل حتى بلا انترنت
 
-const CACHE_NAME = 'khadamati-cache-v1';
+const CACHE_NAME = 'khadamati-cache-v2';
 const urlsToCache = [
   './',
   './index.html',
