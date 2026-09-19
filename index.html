@@ -122,6 +122,9 @@ nav button .n-ic{display:block;font-size:19px;margin-bottom:2px;}
 
 #offline-banner{position:fixed;top:0;left:0;right:0;z-index:9998;background:var(--rust-deep);color:#fff;text-align:center;padding:9px 16px;font-size:13px;font-weight:700;transform:translateY(-100%);transition:transform .3s ease;}
 #offline-banner.show{transform:translateY(0);}
+#update-banner{position:fixed;top:0;left:0;right:0;z-index:9997;background:var(--ok);color:#fff;text-align:center;padding:10px 16px;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:10px;transform:translateY(-100%);transition:transform .3s ease;}
+#update-banner.show{transform:translateY(0);}
+#update-banner button{width:auto;padding:5px 14px;background:#fff;color:var(--ok);font-size:12.5px;}
 
 #splash{position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;transition:opacity .45s ease,visibility .45s ease;}
 #splash.hide{opacity:0;visibility:hidden;pointer-events:none;}
@@ -148,6 +151,10 @@ nav button .n-ic{display:block;font-size:19px;margin-bottom:2px;}
 </div>
 
 <div id="offline-banner" data-i18n="offline">⚠️ لا يوجد اتصال بالإنترنت</div>
+<div id="update-banner">
+  <span data-i18n="updateAvailable">🆕 نسخة جديدة متوفرة</span>
+  <button id="update-btn" data-i18n="updateNow">تحديث الآن</button>
+</div>
 
 <div id="app">
 
@@ -185,8 +192,9 @@ nav button .n-ic{display:block;font-size:19px;margin-bottom:2px;}
 
   <div class="section-head">
     <h2 data-i18n="nearYou">حرفيون متاحون بالقرب منك</h2>
-    <span class="muted" id="result-count">— </span>
+    <button id="fav-filter-btn" class="ghost" style="width:auto;padding:6px 12px;font-size:12.5px;">♡ <span data-i18n="favoritesOnly">المفضلة</span></button>
   </div>
+  <div class="muted" id="result-count" style="margin-bottom:10px;">— </div>
   <div id="craftsmen-list"></div>
 </div>
 
@@ -354,6 +362,8 @@ nav button .n-ic{display:block;font-size:19px;margin-bottom:2px;}
     <button class="modal-close" id="admin-close">×</button>
     <h3 data-i18n="adminPanel">🛡️ لوحة الإدارة</h3>
     <div class="dashboard-stats" id="admin-stats"></div>
+    <h3 style="font-size:15px;margin-top:16px;" data-i18n="manageCraftsmen">إدارة الحرفيين</h3>
+    <div id="admin-craftsmen-list"><div class="muted" data-i18n="loading">جارٍ التحميل...</div></div>
     <h3 style="font-size:15px;margin-top:16px;" data-i18n="adminReports">البلاغات الواردة</h3>
     <div id="admin-reports-list"><div class="muted" data-i18n="loading">جارٍ التحميل...</div></div>
   </div>
@@ -498,6 +508,15 @@ const translations = {
   totalCustomers:{ar:"العملاء",fr:"Clients",en:"Customers"},
   totalBookings:{ar:"الحجوزات",fr:"Réservations",en:"Bookings"},
   noReports:{ar:"لا توجد بلاغات حاليًا",fr:"Aucun signalement",en:"No reports"},
+  updateAvailable:{ar:"🆕 نسخة جديدة متوفرة",fr:"🆕 Nouvelle version disponible",en:"🆕 New version available"},
+  updateNow:{ar:"تحديث الآن",fr:"Mettre à jour",en:"Update now"},
+  verifiedBadge:{ar:"✅ موثق",fr:"✅ Vérifié",en:"✅ Verified"},
+  verify:{ar:"توثيق",fr:"Vérifier",en:"Verify"},
+  unverify:{ar:"إلغاء التوثيق",fr:"Annuler",en:"Unverify"},
+  manageCraftsmen:{ar:"إدارة الحرفيين",fr:"Gérer les artisans",en:"Manage craftsmen"},
+  favoritesOnly:{ar:"المفضلة",fr:"Favoris",en:"Favorites"},
+  addedToFavorites:{ar:"تمت الإضافة إلى المفضلة ❤",fr:"Ajouté aux favoris ❤",en:"Added to favorites ❤"},
+  removedFromFavorites:{ar:"تمت الإزالة من المفضلة",fr:"Retiré des favoris",en:"Removed from favorites"},
 };
 
 let currentLang = localStorage.getItem('lang') || 'ar';
@@ -545,7 +564,7 @@ function showToast(msg, success){
 }
 
 // ================= Demo + real craftsmen =================
-let craftsmen = [
+const demoCraftsmen = [
   {name:"الحاج مصطفى", cat:"سباكة", city:"الدار البيضاء", rating:"4.8", price:"150 درهم/تدخل", jobs:9},
   {name:"رشيد الكهربائي", cat:"كهرباء", city:"الرباط", rating:"4.9", price:"120 درهم/تدخل", jobs:12},
   {name:"عبد الله النجار", cat:"نجارة", city:"مراكش", rating:"4.7", price:"200 درهم/تدخل", jobs:6},
@@ -553,8 +572,47 @@ let craftsmen = [
   {name:"يونس البويّاي", cat:"دهن", city:"فاس", rating:"4.6", price:"80 درهم/م²", jobs:5},
   {name:"سعيد التكييف", cat:"تكييف", city:"الدار البيضاء", rating:"4.8", price:"180 درهم/تدخل", jobs:8},
 ];
+let craftsmen = [...demoCraftsmen];
 let currentCat = "الكل";
 let currentSearch = "";
+let favoriteIds = new Set();
+let showFavoritesOnly = false;
+
+document.getElementById('fav-filter-btn').addEventListener('click', ()=>{
+  if(!auth.currentUser){
+    showToast(t('login'));
+    showPage('page-account');
+    return;
+  }
+  showFavoritesOnly = !showFavoritesOnly;
+  const btn = document.getElementById('fav-filter-btn');
+  btn.classList.toggle('ghost', !showFavoritesOnly);
+  btn.style.background = showFavoritesOnly ? 'var(--rust)' : '';
+  btn.style.color = showFavoritesOnly ? '#fff' : '';
+  renderCraftsmen();
+});
+
+async function toggleFavorite(craftsmanId){
+  const user = auth.currentUser;
+  if(!user){
+    showToast(t('login'));
+    showPage('page-account');
+    return;
+  }
+  const isFav = favoriteIds.has(craftsmanId);
+  try{
+    await db.collection('customers').doc(user.uid).set({
+      favorites: isFav
+        ? firebase.firestore.FieldValue.arrayRemove(craftsmanId)
+        : firebase.firestore.FieldValue.arrayUnion(craftsmanId)
+    }, { merge: true });
+    if(isFav){ favoriteIds.delete(craftsmanId); showToast(t('removedFromFavorites')); }
+    else { favoriteIds.add(craftsmanId); showToast(t('addedToFavorites'), true); }
+    renderCraftsmen();
+  }catch(error){
+    showToast(currentLang==='fr' ? 'Échec' : (currentLang==='en' ? 'Failed' : 'تعذر التحديث'));
+  }
+}
 
 function initials(name){ return name.trim().split(' ').slice(0,2).map(p=>p[0]).join(''); }
 
@@ -564,7 +622,8 @@ function renderCraftsmen(){
   const filtered = craftsmen.filter(c=>{
     const matchCat = currentCat === "الكل" || c.cat === currentCat;
     const matchSearch = (c.name+c.cat).toLowerCase().includes(currentSearch.toLowerCase());
-    return matchCat && matchSearch;
+    const matchFav = !showFavoritesOnly || favoriteIds.has(c.id);
+    return matchCat && matchSearch && matchFav;
   });
   countEl.textContent = filtered.length + " " + t('results');
   if(!filtered.length){
@@ -575,10 +634,11 @@ function renderCraftsmen(){
     <div class="profile">
       <div class="p-top">
         <div class="avatar">${initials(c.name)}</div>
-        <div>
-          <h3>${c.name}</h3>
+        <div style="flex:1;">
+          <h3>${c.name}${c.verified ? ` <span style="font-size:11.5px;color:var(--ok);">${t('verifiedBadge')}</span>` : ''}</h3>
           <div class="muted">${c.cat} · ${c.city}</div>
         </div>
+        ${c.id ? `<button class="fav-btn" onclick="toggleFavorite('${c.id}')" style="width:auto;background:none;color:${favoriteIds.has(c.id)?'var(--rust)':'#ccc'};font-size:22px;padding:0 4px;">${favoriteIds.has(c.id) ? '♥' : '♡'}</button>` : ''}
       </div>
       <span class="price-tag">${c.price}</span>
       <div class="muted"><span class="stars">⭐ ${c.rating}</span> · ${c.jobs} ${currentLang==='fr'?'missions':(currentLang==='en'?'jobs':'مهمة')}</div>
@@ -598,11 +658,13 @@ async function loadCraftsmenFromFirestore(){
         cat: d.cat || 'أخرى',
         city: d.city || '',
         rating: (d.rating !== undefined && d.rating !== null) ? Number(d.rating).toFixed(1) : '—',
+        verified: !!d.verified,
         price: d.price || '—',
         jobs: d.jobs || 0,
       };
     });
-    if(real.length){ craftsmen = [...real, ...craftsmen]; renderCraftsmen(); }
+    craftsmen = real.length ? [...real, ...demoCraftsmen] : [...demoCraftsmen];
+    renderCraftsmen();
   }catch(e){ console.log('تعذر تحميل الحرفيين:', e); }
 }
 
@@ -1279,8 +1341,33 @@ async function loadAdminPanel(){
         </div>`;
       }).join('');
     }
+
+    const craftsmenList = document.getElementById('admin-craftsmen-list');
+    if(craftsmenSnap.empty){
+      craftsmenList.innerHTML = `<div class="muted">—</div>`;
+    } else {
+      craftsmenList.innerHTML = craftsmenSnap.docs.map(doc=>{
+        const d = doc.data();
+        const isVerified = !!d.verified;
+        return `<div class="order-box">
+          <b>${d.name||''}</b> ${isVerified ? `<span style="color:var(--ok);font-size:12px;">${t('verifiedBadge')}</span>` : ''}
+          <div class="muted">${d.cat||''} · ${d.city||''}</div>
+          <button class="${isVerified?'ghost':''}" style="margin-top:8px;" onclick="toggleVerified('${doc.id}',${isVerified})">${isVerified ? t('unverify') : t('verify')}</button>
+        </div>`;
+      }).join('');
+    }
   }catch(error){
     reportsList.innerHTML = `<div class="muted">${currentLang==='fr'?'Impossible de charger':(currentLang==='en'?'Unable to load':'تعذر التحميل')}</div>`;
+  }
+}
+
+async function toggleVerified(craftsmanId, currentlyVerified){
+  try{
+    await db.collection('craftsmen').doc(craftsmanId).update({ verified: !currentlyVerified });
+    loadAdminPanel();
+    loadCraftsmenFromFirestore();
+  }catch(error){
+    showToast(currentLang==='fr' ? 'Échec' : (currentLang==='en' ? 'Failed' : 'تعذر التحديث'));
   }
 }
 
@@ -1306,6 +1393,7 @@ auth.onAuthStateChanged(async (user)=>{
     let displayName = user.email;
     isCraftsmanUser = false;
     let craftsmanData = null;
+    favoriteIds = new Set();
     try{
       const craftsmanDoc = await db.collection('craftsmen').doc(user.uid).get();
       if(craftsmanDoc.exists){
@@ -1314,9 +1402,13 @@ auth.onAuthStateChanged(async (user)=>{
         if(craftsmanData.name) displayName = craftsmanData.name;
       } else {
         const customerDoc = await db.collection('customers').doc(user.uid).get();
-        if(customerDoc.exists && customerDoc.data().name) displayName = customerDoc.data().name;
+        if(customerDoc.exists){
+          if(customerDoc.data().name) displayName = customerDoc.data().name;
+          favoriteIds = new Set(customerDoc.data().favorites || []);
+        }
       }
     }catch(e){}
+    renderCraftsmen();
 
     loggedOut.style.display = 'none';
     loggedIn.style.display = 'block';
@@ -1339,10 +1431,15 @@ auth.onAuthStateChanged(async (user)=>{
     }
   } else {
     isCraftsmanUser = false;
+    favoriteIds = new Set();
+    showFavoritesOnly = false;
+    document.getElementById('fav-filter-btn').style.background = '';
+    document.getElementById('fav-filter-btn').style.color = '';
     loggedOut.style.display = 'block';
     loggedIn.style.display = 'none';
     document.getElementById('admin-btn').style.display = 'none';
     if(notifUnsubscribe){ notifUnsubscribe(); notifUnsubscribe = null; }
+    renderCraftsmen();
   }
   if('Notification' in window && Notification.permission === 'granted' && user){
     startNotificationListener();
@@ -1372,7 +1469,31 @@ updateOnlineStatus();
 
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./sw.js').catch(()=>{});
+    navigator.serviceWorker.register('./sw.js').then(reg=>{
+      reg.addEventListener('updatefound', ()=>{
+        const newWorker = reg.installing;
+        if(!newWorker) return;
+        newWorker.addEventListener('statechange', ()=>{
+          if(newWorker.state === 'installed' && navigator.serviceWorker.controller){
+            document.getElementById('update-banner').classList.add('show');
+          }
+        });
+      });
+    }).catch(()=>{});
+
+    let refreshing = false;
+    navigator.serviceWorker.addEventListener('controllerchange', ()=>{
+      if(refreshing) return;
+      refreshing = true;
+      window.location.reload();
+    });
+
+    document.getElementById('update-btn').addEventListener('click', async ()=>{
+      const reg = await navigator.serviceWorker.getRegistration();
+      if(reg && reg.waiting){
+        reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+      }
+    });
   });
 }
 </script>
