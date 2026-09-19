@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>سياسة الخصوصية — خدماتي</title>
+<style>
+  body{font-family:Tahoma,Arial,sans-serif;background:#F7F5F1;color:#222;line-height:1.9;max-width:680px;margin:0 auto;padding:30px 20px;}
+  h1{color:#B5502D;font-size:24px;}
+  h2{color:#8C3C20;font-size:17px;margin-top:28px;}
+  p{font-size:14.5px;color:#444;}
+  .lang-toggle{text-align:center;margin-bottom:20px;}
+  .lang-toggle button{padding:8px 16px;margin:0 4px;border-radius:8px;border:1px solid #ddd;background:#fff;cursor:pointer;}
+  .lang-toggle button.active{background:#B5502D;color:#fff;border-color:#B5502D;}
+  .sec{display:none;}
+  .sec.active{display:block;}
+</style>
+</head>
+<body>
+
+<div class="lang-toggle">
+  <button data-l="ar" class="active">العربية</button>
+  <button data-l="fr">Français</button>
+  <button data-l="en">English</button>
+</div>
+
+<div class="sec active" data-l="ar" dir="rtl">
+  <h1>سياسة الخصوصية — تطبيق خدماتي</h1>
+  <p>آخر تحديث: 2026</p>
+  <h2>جمع البيانات</h2>
+  <p>نجمع الاسم والبريد الإلكتروني ومعلومات الحجز (العنوان، الوقت، نوع الخدمة) فقط لتقديم خدمة ربط العملاء بالحرفيين.</p>
+  <h2>استخدام البيانات</h2>
+  <p>تُستخدم بياناتك حصرًا لتشغيل التطبيق (تسجيل الدخول، الحجوزات، التقييمات، المحادثات المرتبطة بحجوزاتك). لا نبيع بياناتك لأي جهة خارجية.</p>
+  <h2>الدفع</h2>
+  <p>الدفع يتم نقدًا مباشرة بين العميل والحرفي. التطبيق لا يعالج أي مدفوعات إلكترونية حاليًا.</p>
+  <h2>الأمان</h2>
+  <p>حسابك محمي بكلمة مرور مشفرة عبر خدمات Firebase من Google، ومعاملاتنا مع قاعدة البيانات محمية بقواعد أمان صارمة.</p>
+  <h2>حذف الحساب والبيانات</h2>
+  <p>يمكنك حذف حسابك وجميع بياناتك المرتبطة به نهائيًا في أي وقت من صفحة "الحساب" داخل التطبيق.</p>
+  <h2>التواصل</h2>
+  <p>لأي استفسار بخصوص الخصوصية، يرجى التواصل عبر البريد الإلكتروني الظاهر في صفحة التطبيق على المتجر.</p>
+</div>
+
+<div class="sec" data-l="fr" dir="ltr">
+  <h1>Politique de confidentialité — Khadamati</h1>
+  <p>Dernière mise à jour : 2026</p>
+  <h2>Collecte de données</h2>
+  <p>Nous collectons le nom, l'e-mail et les informations de réservation (adresse, heure, type de service) uniquement pour fournir le service de mise en relation.</p>
+  <h2>Utilisation des données</h2>
+  <p>Vos données servent uniquement au fonctionnement de l'application (connexion, réservations, évaluations, messagerie liée à vos réservations). Nous ne vendons jamais vos données.</p>
+  <h2>Paiement</h2>
+  <p>Le paiement se fait en espèces directement entre le client et l'artisan. L'application ne traite aucun paiement en ligne actuellement.</p>
+  <h2>Sécurité</h2>
+  <p>Votre compte est protégé par un mot de passe chiffré via les services Firebase de Google, avec des règles de sécurité strictes.</p>
+  <h2>Suppression du compte</h2>
+  <p>Vous pouvez supprimer définitivement votre compte et toutes vos données à tout moment depuis la page "Compte" de l'application.</p>
+  <h2>Contact</h2>
+  <p>Pour toute question relative à la confidentialité, veuillez nous contacter via l'e-mail indiqué sur la fiche de l'application.</p>
+</div>
+
+<div class="sec" data-l="en" dir="ltr">
+  <h1>Privacy Policy — Khadamati</h1>
+  <p>Last updated: 2026</p>
+  <h2>Data We Collect</h2>
+  <p>We collect your name, email, and booking details (address, time, service type) solely to provide the customer-craftsman matching service.</p>
+  <h2>How We Use Your Data</h2>
+  <p>Your data is used only to operate the app (login, bookings, ratings, chat tied to your bookings). We never sell your data to third parties.</p>
+  <h2>Payment</h2>
+  <p>Payment is made in cash directly between customer and craftsman. The app does not process any online payments at this time.</p>
+  <h2>Security</h2>
+  <p>Your account is protected by an encrypted password via Google's Firebase services, with strict database security rules.</p>
+  <h2>Account Deletion</h2>
+  <p>You may permanently delete your account and all associated data at any time from the "Account" page in the app.</p>
+  <h2>Contact</h2>
+  <p>For any privacy-related question, please contact us via the email listed on the app's store page.</p>
+</div>
+
+<script>
+document.querySelectorAll('.lang-toggle button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.lang-toggle button').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.sec').forEach(s=>s.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelector('.sec[data-l="'+btn.dataset.l+'"]').classList.add('active');
+  });
+});
+</script>
+
+</body>
+</html>
