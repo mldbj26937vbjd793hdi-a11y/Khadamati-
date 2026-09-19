@@ -1,7 +1,7 @@
 // Service Worker بسيط لخدماتي — كيخلي الموقع "قابل للتثبيت" (installable)
 // وكيحفظ الصفحة الرئيسية للعمل حتى بلا انترنت
 
-const CACHE_NAME = 'khadamati-cache-v2';
+const CACHE_NAME = 'khadamati-cache-v3';
 const urlsToCache = [
   './',
   './index.html',
@@ -11,13 +11,20 @@ const urlsToCache = [
 ];
 
 // عند التثبيت: نحفظو الملفات الأساسية فالكاش
+// (ماكنديروش skipWaiting هنا تلقائياً، باش نقدرو نعرضو للمستخدم تنبيه "كاين تحديث" قبل التفعيل)
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       return cache.addAll(urlsToCache);
     })
   );
-  self.skipWaiting();
+});
+
+// نستنى رسالة من الصفحة (كي يدوس المستخدم "تحديث الآن") قبل ما نفعّلو النسخة الجديدة
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
 
 // عند التفعيل: نمسحو أي كاش قديم
