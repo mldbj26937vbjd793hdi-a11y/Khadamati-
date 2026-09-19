@@ -180,6 +180,24 @@ nav button .n-ic{display:block;font-size:19px;margin-bottom:2px;}
     <button id="search-btn" data-i18n="search">بحث</button>
   </div>
 
+  <!-- ========================================================
+       مكان الإعلان (بانر الصفحة الرئيسية)
+       بعد ما تسجلي فشبكة إعلانات (Adsterra/PropellerAds) وتاخدي
+       كود الإعلان ديالك، الصقيه هنا بدل هاد الـ div، أو جواه.
+       ======================================================== -->
+  <div id="ad-slot-home" style="min-height:0;display:flex;justify-content:center;overflow:hidden;">
+    <script>
+      atOptions = {
+        'key' : '33ca295e7132ffe8c23d91a46a83927d',
+        'format' : 'iframe',
+        'height' : 250,
+        'width' : 300,
+        'params' : {}
+      };
+    </script>
+    <script src="https://www.highrevenueformat.com/33ca295e7132ffe8c23d91a46a83927d/invoke.js"></script>
+  </div>
+
   <div class="categories" id="categories">
     <div class="cat-card active" data-cat="الكل"><span class="ic">🧰</span><span data-i18n="catAll">الكل</span></div>
     <div class="cat-card" data-cat="سباكة"><span class="ic">🚿</span><span data-i18n="catPlumbing">سباكة</span></div>
@@ -517,6 +535,9 @@ const translations = {
   favoritesOnly:{ar:"المفضلة",fr:"Favoris",en:"Favorites"},
   addedToFavorites:{ar:"تمت الإضافة إلى المفضلة ❤",fr:"Ajouté aux favoris ❤",en:"Added to favorites ❤"},
   removedFromFavorites:{ar:"تمت الإزالة من المفضلة",fr:"Retiré des favoris",en:"Removed from favorites"},
+  featuredBadge:{ar:"⭐ حرفي مميز",fr:"⭐ Artisan en vedette",en:"⭐ Featured craftsman"},
+  makeFeatured:{ar:"تفعيل التمييز",fr:"Mettre en vedette",en:"Make featured"},
+  unfeature:{ar:"إلغاء التمييز",fr:"Retirer",en:"Unfeature"},
 };
 
 let currentLang = localStorage.getItem('lang') || 'ar';
@@ -624,14 +645,15 @@ function renderCraftsmen(){
     const matchSearch = (c.name+c.cat).toLowerCase().includes(currentSearch.toLowerCase());
     const matchFav = !showFavoritesOnly || favoriteIds.has(c.id);
     return matchCat && matchSearch && matchFav;
-  });
+  }).sort((a,b)=> (b.featured?1:0) - (a.featured?1:0));
   countEl.textContent = filtered.length + " " + t('results');
   if(!filtered.length){
     list.innerHTML = `<div class="muted" style="text-align:center;padding:20px;">${t('noResults')}</div>`;
     return;
   }
   list.innerHTML = filtered.map(c=>`
-    <div class="profile">
+    <div class="profile" style="${c.featured ? 'border:1.5px solid var(--rust);box-shadow:0 4px 14px rgba(181,80,45,.18);' : ''}">
+      ${c.featured ? `<div style="font-size:11px;font-weight:700;color:var(--rust);margin-bottom:6px;">${t('featuredBadge')}</div>` : ''}
       <div class="p-top">
         <div class="avatar">${initials(c.name)}</div>
         <div style="flex:1;">
@@ -659,6 +681,7 @@ async function loadCraftsmenFromFirestore(){
         city: d.city || '',
         rating: (d.rating !== undefined && d.rating !== null) ? Number(d.rating).toFixed(1) : '—',
         verified: !!d.verified,
+        featured: !!d.featured,
         price: d.price || '—',
         jobs: d.jobs || 0,
       };
@@ -1349,10 +1372,14 @@ async function loadAdminPanel(){
       craftsmenList.innerHTML = craftsmenSnap.docs.map(doc=>{
         const d = doc.data();
         const isVerified = !!d.verified;
+        const isFeatured = !!d.featured;
         return `<div class="order-box">
-          <b>${d.name||''}</b> ${isVerified ? `<span style="color:var(--ok);font-size:12px;">${t('verifiedBadge')}</span>` : ''}
+          <b>${d.name||''}</b> ${isVerified ? `<span style="color:var(--ok);font-size:12px;">${t('verifiedBadge')}</span>` : ''} ${isFeatured ? `<span style="color:var(--rust);font-size:12px;">${t('featuredBadge')}</span>` : ''}
           <div class="muted">${d.cat||''} · ${d.city||''}</div>
-          <button class="${isVerified?'ghost':''}" style="margin-top:8px;" onclick="toggleVerified('${doc.id}',${isVerified})">${isVerified ? t('unverify') : t('verify')}</button>
+          <div style="display:flex;gap:8px;margin-top:8px;">
+            <button class="${isVerified?'ghost':''}" onclick="toggleVerified('${doc.id}',${isVerified})">${isVerified ? t('unverify') : t('verify')}</button>
+            <button class="${isFeatured?'ghost':''}" onclick="toggleFeatured('${doc.id}',${isFeatured})">${isFeatured ? t('unfeature') : t('makeFeatured')}</button>
+          </div>
         </div>`;
       }).join('');
     }
@@ -1364,6 +1391,16 @@ async function loadAdminPanel(){
 async function toggleVerified(craftsmanId, currentlyVerified){
   try{
     await db.collection('craftsmen').doc(craftsmanId).update({ verified: !currentlyVerified });
+    loadAdminPanel();
+    loadCraftsmenFromFirestore();
+  }catch(error){
+    showToast(currentLang==='fr' ? 'Échec' : (currentLang==='en' ? 'Failed' : 'تعذر التحديث'));
+  }
+}
+
+async function toggleFeatured(craftsmanId, currentlyFeatured){
+  try{
+    await db.collection('craftsmen').doc(craftsmanId).update({ featured: !currentlyFeatured });
     loadAdminPanel();
     loadCraftsmenFromFirestore();
   }catch(error){
