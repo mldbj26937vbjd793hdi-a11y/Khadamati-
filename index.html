@@ -2,411 +2,1379 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Khidmati Pro</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>خدماتي — حرفيون موثوقون عند الطلب</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#B5502D">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@600;700;800&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
-*{box-sizing:border-box;font-family:Arial,Tahoma,sans-serif}
-body{margin:0;background:#f7f5f1;color:#222}
-header{background:#b5502d;color:white;padding:22px;text-align:center}
-.search{margin:20px;padding:15px;background:white;border-radius:18px}
-input,select,button{width:100%;padding:13px;margin:6px 0;border-radius:12px;border:1px solid #ddd}
-button{background:#b5502d;color:white;border:0}
-.categories{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:15px}
-.card{background:white;padding:18px;border-radius:16px;text-align:center;box-shadow:0 3px 10px #0001}
-.craftsmen{padding:15px}
-.profile{background:white;border-radius:18px;padding:15px;margin-bottom:12px}
-.stars{color:#e9a400}
-nav{position:fixed;bottom:0;left:0;right:0;background:white;display:flex;justify-content:space-around;padding:12px;border-top:1px solid #ddd}
-nav button{background:none;color:#333;margin:0;padding:8px}
-.page{display:none;padding-bottom:80px}
-.active{display:block}
-.fr{display:none}
+:root{
+  --rust:#B5502D; --rust-deep:#8C3C20; --bg:#F7F5F1; --ink:#222;
+  --ink-soft:#6B5F53; --line:#E7DCC9; --ok:#3E6B4F;
+}
+*{box-sizing:border-box;font-family:'Tajawal',Arial,Tahoma,sans-serif;}
+h1,h2,h3,.brand{font-family:'Cairo',Arial,sans-serif;}
+body{margin:0;background:var(--bg);color:var(--ink);}
+a{color:inherit;text-decoration:none;}
+input,select,textarea,button{width:100%;padding:13px;margin:6px 0;border-radius:12px;border:1px solid var(--line);font-size:15px;font-family:inherit;background:#fff;}
+button{background:var(--rust);color:#fff;border:0;font-weight:700;cursor:pointer;}
+button:hover{background:var(--rust-deep);}
+button.ghost{background:#fff;color:var(--ink);border:1.5px solid var(--line);}
+button:disabled{opacity:.6;cursor:not-allowed;}
 
-#splash{
-position:fixed;inset:0;background:linear-gradient(135deg,#b5502d,#8c3c20);
-color:white;display:flex;align-items:center;justify-content:center;
-flex-direction:column;z-index:9999;transition:.6s
-}
-#splash h1{font-size:42px}
-.loader{
-width:45px;height:45px;border:5px solid #ffffff55;
-border-top-color:white;border-radius:50%;
-animation:spin 1s linear infinite;margin-top:20px
-}
-@keyframes spin{to{transform:rotate(360deg)}}
-.welcome-card{
-background:white;margin:20px;padding:20px;border-radius:18px;
-text-align:center;box-shadow:0 4px 15px #0002
-}
+header{background:var(--rust);color:#fff;padding:18px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;}
+header .h-brand{display:flex;align-items:center;gap:10px;}
+header .h-brand img{width:34px;height:34px;border-radius:50%;}
+header .h-brand div h1{font-size:17px;margin:0;}
+header .h-brand div p{font-size:11.5px;margin:0;opacity:.9;}
+header select{width:auto;padding:6px 8px;margin:0;font-size:12.5px;background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3);}
+header select option{color:#222;}
 
-/* Khidmati Pro 1.2 Accounts */
-.account-box,.craftsman-box{
-background:white;margin:20px;padding:20px;border-radius:18px;
-box-shadow:0 4px 15px #0002;
-}
-.role-buttons{display:flex;gap:10px}
-.role-buttons button{flex:1}
-.avatar{
-width:70px;height:70px;border-radius:50%;
-background:#b5502d;color:white;
-display:flex;align-items:center;justify-content:center;
-font-size:30px;margin:auto;
-}
-.service-img{
-height:120px;border-radius:15px;
-background:#eee;display:flex;align-items:center;justify-content:center;
-font-size:40px;margin-bottom:10px;
-}
-.status{
-padding:8px;border-radius:20px;background:#f3e5dc;
-display:inline-block;
-}
+.page{display:none;padding:16px 16px 90px;max-width:640px;margin:0 auto;}
+.page.active{display:block;}
 
-/* Khidmati Pro 1.3 Orders */
-.order-box{
-background:white;margin:15px;padding:18px;border-radius:18px;
-box-shadow:0 4px 15px #0002;
-}
-.order-status{
-display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;
-}
-.order-status span{
-background:#f3e5dc;padding:8px 12px;border-radius:20px;
-}
-.photo-upload{
-border:2px dashed #b5502d;padding:20px;text-align:center;
-border-radius:15px;margin:10px 0;
-}
-.review{
-background:white;padding:15px;border-radius:15px;margin:10px;
-}
+.search{padding:14px;background:#fff;border-radius:18px;box-shadow:0 3px 10px #0001;display:flex;gap:8px;}
+.search input{margin:0;}
+.search button{width:auto;padding:0 18px;flex-shrink:0;}
 
-/* Khidmati Pro 1.4 Chat & Offers */
-.chat-box,.offer-box{
-background:white;margin:15px;padding:18px;border-radius:18px;
-box-shadow:0 4px 15px #0002;
-}
-.message{
-padding:10px;margin:8px 0;border-radius:15px;
-background:#f3e5dc;
-}
-.message.me{
-background:#b5502d;color:white;
-}
-.offer{
-border:1px solid #ddd;padding:12px;border-radius:14px;margin:10px 0;
-}
-.notification{
-position:fixed;top:20px;right:20px;background:#b5502d;color:white;
-padding:15px;border-radius:12px;display:none;z-index:999;
-}
+.categories{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:16px 0;}
+.cat-card{background:#fff;padding:16px 8px;border-radius:16px;text-align:center;box-shadow:0 3px 10px #0001;cursor:pointer;font-size:13.5px;font-weight:600;border:2px solid transparent;}
+.cat-card.active{border-color:var(--rust);background:#FCEEE7;}
+.cat-card .ic{font-size:24px;display:block;margin-bottom:6px;}
 
-/* Khidmati Pro 1.5 Map & Ratings */
-.map-box{
-background:white;margin:15px;padding:20px;border-radius:18px;
-height:230px;display:flex;align-items:center;justify-content:center;
-box-shadow:0 4px 15px #0002;
-background:linear-gradient(135deg,#dff3ff,#f8f1e8);
-}
-.craftsman-card{
-background:white;margin:15px;padding:18px;border-radius:18px;
-box-shadow:0 4px 15px #0002;
-}
-.distance{
-background:#e8f5e9;padding:6px 12px;border-radius:20px;
-display:inline-block;
-}
-.stars button{
-background:none;color:#e9a400;font-size:25px;width:auto;
-}
-.dashboard{
-display:grid;grid-template-columns:repeat(2,1fr);
-gap:10px;margin:15px;
-}
-.stat-card{
-background:white;padding:15px;border-radius:16px;text-align:center;
-box-shadow:0 4px 15px #0002;
-}
+.section-head{display:flex;justify-content:space-between;align-items:baseline;margin:18px 0 10px;}
+.section-head h2{font-size:18px;margin:0;}
+.muted{color:var(--ink-soft);font-size:13px;}
+
+.profile{background:#fff;border-radius:18px;padding:16px;margin-bottom:12px;box-shadow:0 3px 10px #0001;}
+.profile h3{margin:0 0 4px;font-size:16px;}
+.stars{color:#e9a400;font-size:14px;}
+.price-tag{background:#F1EAD9;padding:4px 10px;border-radius:8px;font-size:12.5px;font-weight:700;display:inline-block;margin:6px 0;}
+
+.avatar{width:44px;height:44px;border-radius:50%;background:linear-gradient(160deg,var(--rust),var(--rust-deep));color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;}
+.p-top{display:flex;gap:10px;align-items:center;margin-bottom:8px;}
+
+.status{padding:6px 12px;border-radius:20px;background:#F3E5DC;display:inline-block;font-size:12.5px;font-weight:700;color:var(--rust-deep);}
+.status.done{background:#DCEEE1;color:var(--ok);}
+.status.cancelled{background:#F1D9D3;color:var(--rust-deep);}
+
+.order-box{background:#fff;margin-bottom:14px;padding:16px;border-radius:18px;box-shadow:0 3px 10px #0001;}
+.order-box .order-status{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
+
+.field{margin-bottom:12px;}
+.field label{display:block;font-size:13px;margin-bottom:5px;color:var(--ink-soft);}
+.field input,.field select,.field textarea{margin:0;}
+.field-error{color:var(--rust-deep);font-size:12.5px;margin-top:5px;display:none;}
+.field-error.show{display:block;}
+
+.role-tabs{display:flex;gap:8px;margin-bottom:14px;}
+.role-tabs button{flex:1;}
+.role-tabs button.active{background:var(--rust);color:#fff;}
+.role-tabs button:not(.active){background:#fff;color:var(--ink);border:1.5px solid var(--line);}
+
+.acc-avatar{width:76px;height:76px;border-radius:50%;background:linear-gradient(160deg,var(--rust),var(--rust-deep));color:#fff;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;margin:0 auto 14px;}
+
+.stat-card{background:#fff;padding:15px;border-radius:16px;text-align:center;box-shadow:0 3px 10px #0001;}
+.dashboard-stats{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px;}
+
+.overlay{position:fixed;inset:0;background:rgba(43,36,32,.45);display:none;align-items:center;justify-content:center;z-index:100;padding:20px;}
+.overlay.show{display:flex;}
+.modal{background:#fff;border-radius:18px;max-width:420px;width:100%;padding:24px;position:relative;max-height:88vh;overflow-y:auto;}
+.modal h3{margin:0 0 4px;}
+.modal .sub{color:var(--ink-soft);font-size:13.5px;margin-bottom:14px;}
+.modal-close{position:absolute;top:14px;left:14px;background:none;border:none;font-size:20px;color:var(--ink-soft);width:auto;padding:0;}
+
+.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--rust-deep);color:#fff;padding:13px 20px;border-radius:10px;font-size:14px;opacity:0;transition:.25s;z-index:200;max-width:88vw;text-align:center;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+.toast.success{background:var(--ok);}
+
+.spinner{display:inline-block;width:14px;height:14px;border-radius:50%;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;animation:spin .7s linear infinite;vertical-align:middle;margin-right:6px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+nav{position:fixed;bottom:0;left:0;right:0;background:#fff;display:flex;justify-content:space-around;padding:8px 4px;border-top:1px solid var(--line);z-index:50;}
+nav button{background:none;color:var(--ink-soft);margin:0;padding:8px 4px;flex:1;font-size:11.5px;border-radius:10px;font-weight:600;}
+nav button.active{color:var(--rust);}
+nav button .n-ic{display:block;font-size:19px;margin-bottom:2px;}
+
+.star-picker{display:flex;gap:6px;justify-content:center;margin:14px 0;font-size:30px;}
+.star-picker span{cursor:pointer;color:#ddd;}
+.star-picker span.on{color:#e9a400;}
+
+.coming-soon{background:#fff;border-radius:18px;padding:30px 20px;text-align:center;box-shadow:0 3px 10px #0001;color:var(--ink-soft);}
+.coming-soon .ic{font-size:38px;display:block;margin-bottom:10px;}
+
+.conv-item{background:#fff;border-radius:16px;padding:14px;margin-bottom:10px;box-shadow:0 3px 10px #0001;cursor:pointer;display:flex;gap:10px;align-items:center;}
+.conv-item .conv-body{flex:1;min-width:0;}
+.conv-item .conv-name{font-weight:700;font-size:14.5px;}
+.conv-item .conv-last{color:var(--ink-soft);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+.chat-modal{display:flex;flex-direction:column;height:78vh;max-height:640px;padding:0;}
+.chat-header{padding:16px 50px 12px 16px;border-bottom:1px solid var(--line);flex-shrink:0;}
+.chat-header h3{margin:0;font-size:15px;}
+.chat-messages{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:8px;}
+.bubble{max-width:75%;padding:9px 13px;border-radius:14px;font-size:14px;line-height:1.4;}
+.bubble.mine{align-self:flex-end;background:var(--rust);color:#fff;border-bottom-left-radius:4px;}
+.bubble.theirs{align-self:flex-start;background:#F1EAD9;color:var(--ink);border-bottom-right-radius:4px;}
+.chat-input-row{display:flex;gap:8px;padding:12px;border-top:1px solid var(--line);flex-shrink:0;}
+.chat-input-row input{margin:0;flex:1;}
+.chat-input-row button{width:auto;padding:0 18px;flex-shrink:0;}
+
+#offline-banner{position:fixed;top:0;left:0;right:0;z-index:9998;background:var(--rust-deep);color:#fff;text-align:center;padding:9px 16px;font-size:13px;font-weight:700;transform:translateY(-100%);transition:transform .3s ease;}
+#offline-banner.show{transform:translateY(0);}
+
+#splash{position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;transition:opacity .45s ease,visibility .45s ease;}
+#splash.hide{opacity:0;visibility:hidden;pointer-events:none;}
+#splash img{width:92px;height:92px;border-radius:50%;box-shadow:0 10px 28px rgba(140,60,32,.28);animation:pop .55s cubic-bezier(.34,1.56,.64,1) both;}
+#splash .s-name{font-family:'Cairo',sans-serif;font-weight:700;font-size:16px;color:var(--ink-soft);opacity:0;animation:fadein .5s ease .3s both;}
+#splash .s-dots{display:flex;gap:6px;opacity:0;animation:fadein .4s ease .5s both;}
+#splash .s-dots span{width:6px;height:6px;border-radius:50%;background:var(--rust);animation:pulse 1.1s ease-in-out infinite;}
+#splash .s-dots span:nth-child(2){animation-delay:.15s;}
+#splash .s-dots span:nth-child(3){animation-delay:.3s;}
+@keyframes pop{0%{transform:scale(.75);opacity:0;}100%{transform:scale(1);opacity:1;}}
+@keyframes fadein{0%{opacity:0;transform:translateY(4px);}100%{opacity:1;transform:translateY(0);}}
+@keyframes pulse{0%,80%,100%{opacity:.25;transform:scale(.8);}40%{opacity:1;transform:scale(1);}}
+
+#app{opacity:0;transform:translateY(8px);transition:opacity .5s ease,transform .5s ease;}
+#app.show{opacity:1;transform:translateY(0);}
 </style>
 </head>
 <body>
+
 <div id="splash">
-<h1>Khidmati Pro</h1>
-<p>خدماتك بين يديك</p>
-<div class="loader"></div>
+  <img src="icon-512.png" alt="خدماتي">
+  <div class="s-name" data-i18n="appName">خدماتي</div>
+  <div class="s-dots"><span></span><span></span><span></span></div>
 </div>
 
+<div id="offline-banner" data-i18n="offline">⚠️ لا يوجد اتصال بالإنترنت</div>
+
+<div id="app">
 
 <header>
-<h1 id="title">Khidmati Pro</h1>
-<p id="subtitle">خدمات منزلية وحرفيون موثوقون</p>
-<select id="lang" onchange="changeLang()">
-<option value="ar">العربية</option>
-<option value="fr">Français</option>
-</select>
+  <div class="h-brand">
+    <img src="icon-192.png" alt="خدماتي">
+    <div>
+      <h1 data-i18n="appName">خدماتي</h1>
+      <p data-i18n="tagline">خدمات منزلية وحرفيون موثوقون</p>
+    </div>
+  </div>
+  <select id="lang-select">
+    <option value="ar">العربية</option>
+    <option value="fr">Français</option>
+    <option value="en">English</option>
+  </select>
 </header>
 
-<div id="home" class="page active">
-<div class="search">
-<input id="search" placeholder="ابحث عن خدمة">
-<button>بحث</button>
+<!-- ---------------- HOME ---------------- -->
+<div id="page-home" class="page active">
+  <div class="search">
+    <input id="search-input" data-i18n-ph="searchPh" placeholder="ابحث عن خدمة">
+    <button id="search-btn" data-i18n="search">بحث</button>
+  </div>
+
+  <div class="categories" id="categories">
+    <div class="cat-card active" data-cat="الكل"><span class="ic">🧰</span><span data-i18n="catAll">الكل</span></div>
+    <div class="cat-card" data-cat="سباكة"><span class="ic">🚿</span><span data-i18n="catPlumbing">سباكة</span></div>
+    <div class="cat-card" data-cat="كهرباء"><span class="ic">💡</span><span data-i18n="catElectric">كهرباء</span></div>
+    <div class="cat-card" data-cat="نجارة"><span class="ic">🪚</span><span data-i18n="catCarpentry">نجارة</span></div>
+    <div class="cat-card" data-cat="تنظيف"><span class="ic">🧹</span><span data-i18n="catCleaning">تنظيف</span></div>
+    <div class="cat-card" data-cat="دهن"><span class="ic">🎨</span><span data-i18n="catPaint">دهن</span></div>
+    <div class="cat-card" data-cat="تكييف"><span class="ic">❄️</span><span data-i18n="catAC">تكييف</span></div>
+  </div>
+
+  <div class="section-head">
+    <h2 data-i18n="nearYou">حرفيون متاحون بالقرب منك</h2>
+    <span class="muted" id="result-count">— </span>
+  </div>
+  <div id="craftsmen-list"></div>
 </div>
 
-<div class="categories">
-<div class="card">🔧 كهربائي</div>
-<div class="card">🚿 سباك</div>
-<div class="card">🪚 نجار</div>
-<div class="card">🎨 دهان</div>
-<div class="card">🧹 تنظيف</div>
-<div class="card">📱 صيانة</div>
+<!-- ---------------- ORDERS (role-aware: customer bookings OR craftsman incoming requests) ---------------- -->
+<div id="page-orders" class="page">
+  <h2 data-i18n="myOrders">طلباتي</h2>
+  <div id="orders-list"><div class="muted" data-i18n="loading">جارٍ التحميل...</div></div>
 </div>
 
-<div class="craftmen">
-<div class="profile">
-<h3>أحمد - كهربائي</h3>
-<p>خبرة 8 سنوات</p>
-<div class="stars">★★★★★</div>
-<button>طلب خدمة</button>
+<!-- ---------------- MESSAGES (real-time chat per booking) ---------------- -->
+<div id="page-messages" class="page">
+  <h2 data-i18n="messages">الرسائل</h2>
+  <div id="conversations-list"><div class="muted" data-i18n="loading">جارٍ التحميل...</div></div>
 </div>
 
-<div class="profile">
-<h3>محمد - سباك</h3>
-<p>متاح الآن</p>
-<div class="stars">★★★★☆</div>
-<button>طلب خدمة</button>
-</div>
-</div>
+<!-- ---------------- ACCOUNT (login/register OR profile) ---------------- -->
+<div id="page-account" class="page">
+  <div id="account-logged-out">
+    <div class="role-tabs">
+      <button id="tab-login" class="active" data-i18n="login">تسجيل الدخول</button>
+      <button id="tab-register" data-i18n="register">إنشاء حساب</button>
+    </div>
+
+    <div id="login-form">
+      <div class="field">
+        <label data-i18n="email">البريد الإلكتروني</label>
+        <input type="email" id="li-email" placeholder="example@email.com">
+      </div>
+      <div class="field">
+        <label data-i18n="password">كلمة المرور</label>
+        <input type="password" id="li-password">
+      </div>
+      <div style="text-align:left;margin:-6px 0 10px;">
+        <a href="#" id="li-forgot" style="font-size:12.5px;color:var(--rust-deep);" data-i18n="forgotPassword">نسيت كلمة المرور؟</a>
+      </div>
+      <div class="field-error" id="li-error"></div>
+      <button id="li-submit"><span id="li-submit-text" data-i18n="login">تسجيل الدخول</span></button>
+    </div>
+
+    <div id="register-form" style="display:none;">
+      <div class="role-tabs">
+        <button id="reg-role-customer" class="active" data-i18n="customerAccount">حساب عميل</button>
+        <button id="reg-role-craftsman" data-i18n="craftsmanAccount">حساب حرفي</button>
+      </div>
+      <div class="field">
+        <label data-i18n="fullName">الاسم الكامل</label>
+        <input type="text" id="reg-name" placeholder="مثلاً: محمد العلوي">
+      </div>
+      <div class="field">
+        <label data-i18n="email">البريد الإلكتروني</label>
+        <input type="email" id="reg-email" placeholder="example@email.com">
+      </div>
+      <div class="field">
+        <label data-i18n="password">كلمة المرور</label>
+        <input type="password" id="reg-password" placeholder="6 أحرف على الأقل">
+      </div>
+      <div id="reg-craftsman-fields" style="display:none;">
+        <div class="field">
+          <label data-i18n="profession">المهنة</label>
+          <select id="reg-cat">
+            <option value="سباكة" data-i18n="catPlumbing">سباكة</option>
+            <option value="كهرباء" data-i18n="catElectric">كهرباء</option>
+            <option value="نجارة" data-i18n="catCarpentry">نجارة</option>
+            <option value="تنظيف" data-i18n="catCleaning">تنظيف</option>
+            <option value="دهن" data-i18n="catPaint">دهن</option>
+            <option value="تكييف" data-i18n="catAC">تكييف</option>
+          </select>
+        </div>
+        <div class="field">
+          <label data-i18n="city">المدينة</label>
+          <input type="text" id="reg-city" placeholder="مثلاً: الدار البيضاء">
+        </div>
+        <div class="field">
+          <label data-i18n="price">السعر التقريبي</label>
+          <input type="text" id="reg-price" placeholder="مثلاً: 150 درهم/تدخل">
+        </div>
+      </div>
+      <div class="field-error" id="reg-error"></div>
+      <button id="reg-submit"><span id="reg-submit-text" data-i18n="createAccount">إنشاء الحساب</span></button>
+    </div>
+  </div>
+
+  <div id="account-logged-in" style="display:none;">
+    <div class="acc-avatar" id="acc-avatar">؟</div>
+    <h3 id="acc-name" style="text-align:center;margin-bottom:2px;"></h3>
+    <p class="muted" id="acc-email" style="text-align:center;margin-top:0;"></p>
+
+    <div id="verify-banner" style="display:none;background:#FCEEE7;border-radius:12px;padding:12px;margin-bottom:14px;text-align:center;font-size:13px;color:var(--rust-deep);">
+      <div data-i18n="verifyEmailBanner">⚠️ يرجى تفعيل بريدك الإلكتروني من الرابط المرسل إليك</div>
+      <button class="ghost" id="resend-verify-btn" style="margin-top:8px;" data-i18n="resendVerification">إعادة إرسال رابط التفعيل</button>
+    </div>
+
+    <div id="craftsman-stats" class="dashboard-stats" style="display:none;">
+      <div class="stat-card">📋 <span data-i18n="jobsDone">مهام منجزة</span><br><b id="stat-jobs">0</b></div>
+      <div class="stat-card">⭐ <span data-i18n="rating">التقييم</span><br><b id="stat-rating">—</b></div>
+    </div>
+
+    <button class="ghost" id="acc-notif-btn" data-i18n="enableNotif">🔔 تفعيل الإشعارات</button>
+    <button class="ghost" id="acc-reset-pw" data-i18n="resetPassword">إعادة تعيين كلمة المرور</button>
+    <button class="ghost" id="acc-logout" data-i18n="logout">تسجيل الخروج</button>
+    <button id="acc-delete" style="background:#F1D9D3;color:var(--rust-deep);" data-i18n="deleteAccount">حذف الحساب نهائيًا</button>
+    <div class="field-error" id="acc-error"></div>
+  </div>
+
+  <button id="admin-btn" class="ghost" style="display:none;margin-top:14px;" data-i18n="adminPanel">🛡️ لوحة الإدارة</button>
+  <a href="#" id="privacy-link" style="display:block;text-align:center;margin-top:16px;font-size:12.5px;color:var(--ink-soft);" data-i18n="privacyTerms">سياسة الخصوصية وشروط الاستخدام</a>
 </div>
 
-<div id="orders" class="page">
-<h2>طلباتي</h2>
-<div class="profile">لا توجد طلبات حاليا</div>
+</div><!-- /#app -->
+
+<!-- ---------------- Booking modal ---------------- -->
+<div class="overlay" id="booking-overlay">
+  <div class="modal">
+    <button class="modal-close" id="booking-close">×</button>
+    <h3 id="booking-title" data-i18n="bookService">حجز خدمة</h3>
+    <div class="sub" id="booking-sub"></div>
+    <div class="field">
+      <label data-i18n="address">العنوان</label>
+      <input type="text" id="booking-address" data-i18n-ph="addressPh" placeholder="مثلاً: شارع الحسن الثاني، الدار البيضاء">
+    </div>
+    <div class="field">
+      <label data-i18n="preferredTime">الوقت المفضل</label>
+      <select id="booking-time">
+        <option data-i18n="timeAsap">اليوم — في أقرب وقت</option>
+        <option data-i18n="timeToday">اليوم — بعد الظهر</option>
+        <option data-i18n="timeTomAM">غدًا — صباحًا</option>
+        <option data-i18n="timeTomPM">غدًا — بعد الظهر</option>
+      </select>
+    </div>
+    <div class="muted" style="text-align:center;font-size:12.5px;margin-bottom:8px;" data-i18n="cashNote">💵 الدفع نقدًا مباشرة عند إتمام الخدمة</div>
+    <div class="field-error" id="booking-error"></div>
+    <button id="booking-confirm"><span id="booking-confirm-text" data-i18n="confirmOrder">تأكيد الطلب</span></button>
+    <a href="#" id="report-link" style="display:block;text-align:center;margin-top:10px;font-size:12.5px;color:var(--ink-soft);" data-i18n="reportCraftsman">🚩 الإبلاغ عن هذا الحرفي</a>
+  </div>
 </div>
 
-<div id="messages" class="page">
-<h2>الرسائل</h2>
-<div class="profile">ابدأ محادثة مع الحرفي</div>
+<!-- ---------------- Rating modal ---------------- -->
+<div class="overlay" id="rating-overlay">
+  <div class="modal">
+    <button class="modal-close" id="rating-close">×</button>
+    <h3 data-i18n="rateService">قيّم الخدمة</h3>
+    <div class="sub" data-i18n="rateSub">كيف كانت تجربتك مع الحرفي؟</div>
+    <div class="star-picker" id="rating-picker">
+      <span data-v="1">★</span><span data-v="2">★</span><span data-v="3">★</span><span data-v="4">★</span><span data-v="5">★</span>
+    </div>
+    <div class="field-error" id="rating-error"></div>
+    <button id="rating-submit"><span id="rating-submit-text" data-i18n="sendRating">إرسال التقييم</span></button>
+  </div>
 </div>
 
-<div id="account" class="page">
-<h2>الحساب</h2>
-<div class="profile">
-<input placeholder="الاسم">
-<input placeholder="رقم الهاتف">
-<button>حفظ</button>
-</div>
+<div class="toast" id="toast"></div>
+
+<!-- ---------------- Privacy & Terms modal ---------------- -->
+<div class="overlay" id="privacy-overlay">
+  <div class="modal" style="max-height:80vh;overflow-y:auto;">
+    <button class="modal-close" id="privacy-close">×</button>
+    <h3 data-i18n="privacyTerms">سياسة الخصوصية وشروط الاستخدام</h3>
+    <div id="privacy-body" style="font-size:13.5px;line-height:1.8;color:var(--ink-soft);"></div>
+  </div>
 </div>
 
-
-<div class="welcome-card">
-<h2>مرحبا بك في Khidmati Pro</h2>
-<p>ابحث عن الحرفيين واحجز خدمتك بسهولة.</p>
-<button>ابدأ طلب خدمة</button>
+<!-- ---------------- Admin panel modal ---------------- -->
+<div class="overlay" id="admin-overlay">
+  <div class="modal" style="max-height:82vh;overflow-y:auto;">
+    <button class="modal-close" id="admin-close">×</button>
+    <h3 data-i18n="adminPanel">🛡️ لوحة الإدارة</h3>
+    <div class="dashboard-stats" id="admin-stats"></div>
+    <h3 style="font-size:15px;margin-top:16px;" data-i18n="adminReports">البلاغات الواردة</h3>
+    <div id="admin-reports-list"><div class="muted" data-i18n="loading">جارٍ التحميل...</div></div>
+  </div>
 </div>
 
-<div id="register" class="page">
-<h2>إنشاء حساب</h2>
-<div class="account-box">
-<div class="role-buttons">
-<button onclick="setRole('client')">👤 عميل</button>
-<button onclick="setRole('craftsman')">🛠 حرفي</button>
-</div>
-<input id="name" placeholder="الاسم">
-<input id="phone" placeholder="رقم الهاتف">
-<input id="job" placeholder="نوع الخدمة (للحرفي)">
-<button onclick="register()">إنشاء الحساب</button>
-</div>
-</div>
-
-<div id="craftsman" class="page">
-<h2>ملف الحرفي</h2>
-<div class="craftsman-box">
-<div class="avatar">👷</div>
-<h3 id="craftName">حرفي جديد</h3>
-<div class="service-img">🔧</div>
-<p>خدمات احترافية وتقييمات العملاء</p>
-<span class="status">متاح الآن</span>
-</div>
+<!-- ---------------- Report craftsman modal ---------------- -->
+<div class="overlay" id="report-overlay">
+  <div class="modal">
+    <button class="modal-close" id="report-close">×</button>
+    <h3 data-i18n="reportCraftsman">🚩 الإبلاغ عن هذا الحرفي</h3>
+    <div class="field">
+      <label data-i18n="reportReason">سبب الإبلاغ</label>
+      <textarea id="report-text" rows="4" data-i18n-ph="reportPh" placeholder="اشرح المشكلة بإيجاز..."></textarea>
+    </div>
+    <div class="field-error" id="report-error"></div>
+    <button id="report-submit"><span data-i18n="submitReport">إرسال البلاغ</span></button>
+  </div>
 </div>
 
-
-<div id="newOrder" class="page">
-<h2>إنشاء طلب خدمة</h2>
-<div class="order-box">
-<input id="serviceName" placeholder="نوع الخدمة">
-<textarea id="problem" placeholder="وصف المشكلة"></textarea>
-<div class="photo-upload">
-📷 إضافة صورة للمشكلة
-<input type="file">
-</div>
-<button onclick="createOrder()">إرسال الطلب</button>
-</div>
-</div>
-
-<div id="myOrders" class="page">
-<h2>طلباتي</h2>
-<div id="orderList">
-<div class="order-box">لا توجد طلبات</div>
-</div>
-</div>
-
-<div class="review">
-<h3>تقييم الحرفي</h3>
-<div>☆ ☆ ☆ ☆ ☆</div>
-</div>
-
-
-<div id="chat" class="page">
-<h2>💬 المحادثة</h2>
-<div class="chat-box" id="chatBox">
-<div class="message">مرحبا، كيف يمكنني مساعدتك؟</div>
-</div>
-<input id="msg" placeholder="اكتب رسالة">
-<button onclick="sendMessage()">إرسال</button>
-</div>
-
-<div id="offers" class="page">
-<h2>💰 عروض الأسعار</h2>
-<div class="offer-box" id="offersBox">
-<div class="offer">الحرفي يرسل عرض السعر هنا</div>
-</div>
-<button onclick="addOffer()">إضافة عرض</button>
-</div>
-
-<div class="notification" id="notice"></div>
-
-
-<div id="map" class="page">
-<h2>📍 الموقع والحرفيون القريبون</h2>
-<div class="map-box">
-🗺️ الخريطة التفاعلية - تحديد الموقع
-</div>
-
-<div class="craftsman-card">
-<h3>أحمد - كهربائي</h3>
-<p>⭐ 4.9 تقييم</p>
-<span class="distance">على بعد 2 كم</span>
-<button>طلب الخدمة</button>
-</div>
-
-<div class="craftsman-card">
-<h3>محمد - سباك</h3>
-<p>⭐ 4.7 تقييم</p>
-<span class="distance">على بعد 5 كم</span>
-<button>طلب الخدمة</button>
-</div>
-</div>
-
-<div id="rating" class="page">
-<h2>⭐ تقييم الخدمة</h2>
-<div class="craftsman-card">
-<p>كيف كانت تجربتك؟</p>
-<div class="stars">
-<button onclick="rate(1)">★</button>
-<button onclick="rate(2)">★</button>
-<button onclick="rate(3)">★</button>
-<button onclick="rate(4)">★</button>
-<button onclick="rate(5)">★</button>
-</div>
-<p id="ratingResult"></p>
-</div>
-</div>
-
-<div class="dashboard">
-<div class="stat-card">📋 الطلبات<br><b>12</b></div>
-<div class="stat-card">⭐ التقييم<br><b>4.8</b></div>
+<!-- ---------------- Chat modal ---------------- -->
+<div class="overlay" id="chat-overlay">
+  <div class="modal chat-modal">
+    <button class="modal-close" id="chat-close">×</button>
+    <div class="chat-header"><h3 id="chat-title"></h3></div>
+    <div class="chat-messages" id="chat-messages"></div>
+    <div class="chat-input-row">
+      <input type="text" id="chat-input" data-i18n-ph="typeMessage" placeholder="اكتب رسالة...">
+      <button id="chat-send" data-i18n="send">إرسال</button>
+    </div>
+  </div>
 </div>
 
 <nav>
-
-<button onclick="show('home')">🏠 الرئيسية</button>
-<button onclick="show('orders')">📋 الطلبات</button>
-<button onclick="show('messages')">💬 الرسائل</button>
-<button onclick="show('account')">👤 الحساب</button>
+  <button class="nav-btn active" data-page="page-home"><span class="n-ic">🏠</span><span data-i18n="navHome">الرئيسية</span></button>
+  <button class="nav-btn" data-page="page-orders"><span class="n-ic">📋</span><span data-i18n="navOrders">طلباتي</span></button>
+  <button class="nav-btn" data-page="page-messages"><span class="n-ic">💬</span><span data-i18n="navMessages">الرسائل</span></button>
+  <button class="nav-btn" data-page="page-account"><span class="n-ic">👤</span><span data-i18n="navAccount">الحساب</span></button>
 </nav>
 
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-analytics-compat.js"></script>
+
 <script>
-function show(id){
-document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
-document.getElementById(id).classList.add('active');
-}
+// ================= Firebase init =================
+const firebaseConfig = {
+  apiKey: "AIzaSyBRbskfsebChtSpLLz8QwKhkSawMGqvCcQ",
+  authDomain: "khadamati-app-4d86a.firebaseapp.com",
+  databaseURL: "https://khadamati-app-4d86a-default-rtdb.firebaseio.com",
+  projectId: "khadamati-app-4d86a",
+  storageBucket: "khadamati-app-4d86a.firebasestorage.app",
+  messagingSenderId: "36737681862",
+  appId: "1:36737681862:web:24dadba481e83cfd0e0ac7",
+  measurementId: "G-68G6C8VTKY"
+};
+firebase.initializeApp(firebaseConfig);
+try{ firebase.analytics(); }catch(e){ /* Analytics unavailable, ignore silently */ }
+const auth = firebase.auth();
+const db = firebase.firestore();
 
-function changeLang(){
-let l=document.getElementById('lang').value;
-if(l==='fr'){
-document.dir='ltr';
-document.getElementById('title').innerText='Khidmati Pro';
-document.getElementById('subtitle').innerText='Services à domicile et artisans fiables';
-document.getElementById('search').placeholder='Rechercher un service';
-}else{
-document.dir='rtl';
-document.getElementById('subtitle').innerText='خدمات منزلية وحرفيون موثوقون';
-document.getElementById('search').placeholder='ابحث عن خدمة';
-}
-localStorage.setItem('lang',l);
-}
+// ================= i18n =================
+const translations = {
+  appName:{ar:"خدماتي",fr:"Khadamati",en:"Khadamati"},
+  tagline:{ar:"خدمات منزلية وحرفيون موثوقون",fr:"Services à domicile et artisans fiables",en:"Home services and trusted craftsmen"},
+  offline:{ar:"⚠️ لا يوجد اتصال بالإنترنت",fr:"⚠️ Aucune connexion Internet",en:"⚠️ No internet connection"},
+  searchPh:{ar:"ابحث عن خدمة",fr:"Rechercher un service",en:"Search for a service"},
+  search:{ar:"بحث",fr:"Rechercher",en:"Search"},
+  catAll:{ar:"الكل",fr:"Tout",en:"All"},
+  catPlumbing:{ar:"سباكة",fr:"Plomberie",en:"Plumbing"},
+  catElectric:{ar:"كهرباء",fr:"Électricité",en:"Electricity"},
+  catCarpentry:{ar:"نجارة",fr:"Menuiserie",en:"Carpentry"},
+  catCleaning:{ar:"تنظيف",fr:"Nettoyage",en:"Cleaning"},
+  catPaint:{ar:"دهن",fr:"Peinture",en:"Painting"},
+  catAC:{ar:"تكييف",fr:"Climatisation",en:"Air conditioning"},
+  nearYou:{ar:"حرفيون متاحون بالقرب منك",fr:"Artisans disponibles près de vous",en:"Craftsmen available near you"},
+  myOrders:{ar:"طلباتي",fr:"Mes commandes",en:"My Orders"},
+  loading:{ar:"جارٍ التحميل...",fr:"Chargement...",en:"Loading..."},
+  messages:{ar:"الرسائل",fr:"Messages",en:"Messages"},
+  chatSoon:{ar:"المحادثة المباشرة مع الحرفيين قريبًا",fr:"La messagerie directe arrive bientôt",en:"Direct chat with craftsmen coming soon"},
+  login:{ar:"تسجيل الدخول",fr:"Connexion",en:"Login"},
+  register:{ar:"إنشاء حساب",fr:"Créer un compte",en:"Sign up"},
+  email:{ar:"البريد الإلكتروني",fr:"E-mail",en:"Email"},
+  password:{ar:"كلمة المرور",fr:"Mot de passe",en:"Password"},
+  customerAccount:{ar:"حساب عميل",fr:"Compte client",en:"Customer account"},
+  craftsmanAccount:{ar:"حساب حرفي",fr:"Compte artisan",en:"Craftsman account"},
+  fullName:{ar:"الاسم الكامل",fr:"Nom complet",en:"Full name"},
+  profession:{ar:"المهنة",fr:"Profession",en:"Profession"},
+  city:{ar:"المدينة",fr:"Ville",en:"City"},
+  price:{ar:"السعر التقريبي",fr:"Prix approximatif",en:"Approximate price"},
+  createAccount:{ar:"إنشاء الحساب",fr:"Créer le compte",en:"Create account"},
+  jobsDone:{ar:"مهام منجزة",fr:"Missions faites",en:"Jobs done"},
+  rating:{ar:"التقييم",fr:"Note",en:"Rating"},
+  resetPassword:{ar:"إعادة تعيين كلمة المرور",fr:"Réinitialiser le mot de passe",en:"Reset password"},
+  enableNotif:{ar:"🔔 تفعيل الإشعارات",fr:"🔔 Activer les notifications",en:"🔔 Enable notifications"},
+  notifEnabled:{ar:"تم تفعيل الإشعارات ✅",fr:"Notifications activées ✅",en:"Notifications enabled ✅"},
+  notifDenied:{ar:"تم رفض إذن الإشعارات من إعدادات الهاتف",fr:"Autorisation refusée dans les paramètres du téléphone",en:"Notification permission denied in phone settings"},
+  newOrderNotif:{ar:"طلب جديد وصلك 📋",fr:"Nouvelle commande reçue 📋",en:"New order received 📋"},
+  statusChangedNotif:{ar:"تم تحديث حالة طلبك",fr:"Le statut de votre commande a changé",en:"Your order status changed"},
+  typeMessage:{ar:"اكتب رسالة...",fr:"Écrire un message...",en:"Type a message..."},
+  send:{ar:"إرسال",fr:"Envoyer",en:"Send"},
+  noConversations:{ar:"لا توجد محادثات بعد — احجزي خدمة أولًا",fr:"Aucune conversation — réservez un service d'abord",en:"No conversations yet — book a service first"},
+  newMessageNotif:{ar:"رسالة جديدة",fr:"Nouveau message",en:"New message"},
+  logout:{ar:"تسجيل الخروج",fr:"Déconnexion",en:"Log out"},
+  deleteAccount:{ar:"حذف الحساب نهائيًا",fr:"Supprimer le compte",en:"Delete account permanently"},
+  bookService:{ar:"حجز خدمة",fr:"Réserver un service",en:"Book a service"},
+  address:{ar:"العنوان",fr:"Adresse",en:"Address"},
+  addressPh:{ar:"مثلاً: شارع الحسن الثاني، الدار البيضاء",fr:"Ex: Avenue Hassan II, Casablanca",en:"e.g. Hassan II Avenue, Casablanca"},
+  preferredTime:{ar:"الوقت المفضل",fr:"Heure préférée",en:"Preferred time"},
+  timeAsap:{ar:"اليوم — في أقرب وقت",fr:"Aujourd'hui — dès que possible",en:"Today — as soon as possible"},
+  timeToday:{ar:"اليوم — بعد الظهر",fr:"Aujourd'hui — après-midi",en:"Today — afternoon"},
+  timeTomAM:{ar:"غدًا — صباحًا",fr:"Demain — matin",en:"Tomorrow — morning"},
+  timeTomPM:{ar:"غدًا — بعد الظهر",fr:"Demain — après-midi",en:"Tomorrow — afternoon"},
+  confirmOrder:{ar:"تأكيد الطلب",fr:"Confirmer la commande",en:"Confirm order"},
+  rateService:{ar:"قيّم الخدمة",fr:"Évaluer le service",en:"Rate the service"},
+  rateSub:{ar:"كيف كانت تجربتك مع الحرفي؟",fr:"Comment était votre expérience ?",en:"How was your experience with the craftsman?"},
+  sendRating:{ar:"إرسال التقييم",fr:"Envoyer l'évaluation",en:"Send rating"},
+  navHome:{ar:"الرئيسية",fr:"Accueil",en:"Home"},
+  navOrders:{ar:"طلباتي",fr:"Commandes",en:"Orders"},
+  navMessages:{ar:"الرسائل",fr:"Messages",en:"Messages"},
+  navAccount:{ar:"الحساب",fr:"Compte",en:"Account"},
+  bookNow:{ar:"احجز الآن",fr:"Réserver",en:"Book now"},
+  noResults:{ar:"لا يوجد حرفيون فهاته الفئة حالياً",fr:"Aucun artisan dans cette catégorie",en:"No craftsmen in this category yet"},
+  results:{ar:"نتيجة",fr:"résultats",en:"results"},
+  forgotPassword:{ar:"نسيت كلمة المرور؟",fr:"Mot de passe oublié ?",en:"Forgot password?"},
+  resetLinkSent:{ar:"تم إرسال رابط إعادة التعيين إلى بريدك ✅",fr:"Lien envoyé à votre e-mail ✅",en:"Reset link sent to your email ✅"},
+  enterEmailFirst:{ar:"يرجى إدخال بريدك الإلكتروني أولًا",fr:"Veuillez d'abord saisir votre e-mail",en:"Please enter your email first"},
+  verifyEmailBanner:{ar:"⚠️ يرجى تفعيل بريدك الإلكتروني من الرابط المرسل إليك",fr:"⚠️ Veuillez vérifier votre e-mail via le lien envoyé",en:"⚠️ Please verify your email using the link we sent you"},
+  resendVerification:{ar:"إعادة إرسال رابط التفعيل",fr:"Renvoyer le lien de vérification",en:"Resend verification link"},
+  verificationSent:{ar:"تم إرسال رابط التفعيل ✅",fr:"Lien de vérification envoyé ✅",en:"Verification link sent ✅"},
+  reportCraftsman:{ar:"🚩 الإبلاغ عن هذا الحرفي",fr:"🚩 Signaler cet artisan",en:"🚩 Report this craftsman"},
+  reportSent:{ar:"تم إرسال البلاغ، سنراجعه قريبًا ✅",fr:"Signalement envoyé ✅",en:"Report sent ✅"},
+  reportReason:{ar:"سبب الإبلاغ",fr:"Raison du signalement",en:"Reason for reporting"},
+  reportPh:{ar:"اشرح المشكلة بإيجاز...",fr:"Décrivez brièvement le problème...",en:"Briefly describe the issue..."},
+  submitReport:{ar:"إرسال البلاغ",fr:"Envoyer",en:"Submit"},
+  cashNote:{ar:"💵 الدفع نقدًا مباشرة عند إتمام الخدمة",fr:"💵 Paiement en espèces à la fin du service",en:"💵 Cash payment upon service completion"},
+  privacyTerms:{ar:"سياسة الخصوصية وشروط الاستخدام",fr:"Confidentialité et conditions",en:"Privacy Policy & Terms"},
+  adminPanel:{ar:"🛡️ لوحة الإدارة",fr:"🛡️ Panneau admin",en:"🛡️ Admin panel"},
+  adminReports:{ar:"البلاغات الواردة",fr:"Signalements reçus",en:"Reports received"},
+  totalCraftsmen:{ar:"الحرفيون",fr:"Artisans",en:"Craftsmen"},
+  totalCustomers:{ar:"العملاء",fr:"Clients",en:"Customers"},
+  totalBookings:{ar:"الحجوزات",fr:"Réservations",en:"Bookings"},
+  noReports:{ar:"لا توجد بلاغات حاليًا",fr:"Aucun signalement",en:"No reports"},
+};
 
-window.addEventListener('load',()=>{
-setTimeout(()=>{
-let s=document.getElementById('splash');
-if(s){s.style.opacity='0';setTimeout(()=>s.remove(),600);}
-},1800);
+let currentLang = localStorage.getItem('lang') || 'ar';
+
+function applyLang(){
+  document.documentElement.lang = currentLang;
+  document.documentElement.dir = currentLang === 'ar' ? 'rtl' : 'ltr';
+  document.getElementById('lang-select').value = currentLang;
+  document.querySelectorAll('[data-i18n]').forEach(el=>{
+    const key = el.getAttribute('data-i18n');
+    if(translations[key]) el.textContent = translations[key][currentLang];
+  });
+  document.querySelectorAll('[data-i18n-ph]').forEach(el=>{
+    const key = el.getAttribute('data-i18n-ph');
+    if(translations[key]) el.placeholder = translations[key][currentLang];
+  });
+  localStorage.setItem('lang', currentLang);
+  renderCraftsmen();
+}
+document.getElementById('lang-select').addEventListener('change', (e)=>{
+  currentLang = e.target.value;
+  applyLang();
 });
 
-let selectedRole='';
-function setRole(r){selectedRole=r;}
-function register(){
-let data={name:document.getElementById('name').value,role:selectedRole,job:document.getElementById('job').value};
-localStorage.setItem('khidmatiUser',JSON.stringify(data));
-alert('تم إنشاء الحساب');
+function t(key){ return (translations[key] && translations[key][currentLang]) || key; }
+
+// ================= Navigation =================
+function showPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active', b.dataset.page===id));
+  if(id === 'page-orders') loadOrders();
+  if(id === 'page-messages') loadConversations();
+}
+document.querySelectorAll('.nav-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=> showPage(btn.dataset.page));
+});
+
+function showToast(msg, success){
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.classList.toggle('success', !!success);
+  toast.classList.add('show');
+  setTimeout(()=> toast.classList.remove('show'), 2800);
 }
 
-let orders=JSON.parse(localStorage.getItem('orders')||'[]');
-function createOrder(){
- let o={
- service:document.getElementById('serviceName').value,
- problem:document.getElementById('problem').value,
- status:'طلب جديد'
- };
- orders.push(o);
- localStorage.setItem('orders',JSON.stringify(orders));
- renderOrders();
- alert('تم إرسال الطلب');
-}
-function renderOrders(){
- let box=document.getElementById('orderList');
- if(!box)return;
- box.innerHTML='';
- orders.forEach(o=>{
- box.innerHTML+=`<div class="order-box">
- <b>${o.service}</b><br>${o.problem}
- <div class="order-status"><span>${o.status}</span></div>
- </div>`;
- });
-}
-renderOrders();
+// ================= Demo + real craftsmen =================
+let craftsmen = [
+  {name:"الحاج مصطفى", cat:"سباكة", city:"الدار البيضاء", rating:"4.8", price:"150 درهم/تدخل", jobs:9},
+  {name:"رشيد الكهربائي", cat:"كهرباء", city:"الرباط", rating:"4.9", price:"120 درهم/تدخل", jobs:12},
+  {name:"عبد الله النجار", cat:"نجارة", city:"مراكش", rating:"4.7", price:"200 درهم/تدخل", jobs:6},
+  {name:"فاطمة للتنظيف", cat:"تنظيف", city:"الدار البيضاء", rating:"4.9", price:"100 درهم/ساعة", jobs:15},
+  {name:"يونس البويّاي", cat:"دهن", city:"فاس", rating:"4.6", price:"80 درهم/م²", jobs:5},
+  {name:"سعيد التكييف", cat:"تكييف", city:"الدار البيضاء", rating:"4.8", price:"180 درهم/تدخل", jobs:8},
+];
+let currentCat = "الكل";
+let currentSearch = "";
 
-function sendMessage(){
- let t=document.getElementById('msg').value;
- if(!t)return;
- document.getElementById('chatBox').innerHTML+=`<div class="message me">${t}</div>`;
- document.getElementById('msg').value='';
- notify('تم إرسال الرسالة');
-}
-function addOffer(){
- document.getElementById('offersBox').innerHTML+=`
- <div class="offer">عرض جديد: 100 درهم - في انتظار موافقة العميل</div>`;
- notify('تم إضافة عرض سعر');
-}
-function notify(t){
- let n=document.getElementById('notice');
- if(n){n.textContent=t;n.style.display='block';setTimeout(()=>n.style.display='none',2000);}
+function initials(name){ return name.trim().split(' ').slice(0,2).map(p=>p[0]).join(''); }
+
+function renderCraftsmen(){
+  const list = document.getElementById('craftsmen-list');
+  const countEl = document.getElementById('result-count');
+  const filtered = craftsmen.filter(c=>{
+    const matchCat = currentCat === "الكل" || c.cat === currentCat;
+    const matchSearch = (c.name+c.cat).toLowerCase().includes(currentSearch.toLowerCase());
+    return matchCat && matchSearch;
+  });
+  countEl.textContent = filtered.length + " " + t('results');
+  if(!filtered.length){
+    list.innerHTML = `<div class="muted" style="text-align:center;padding:20px;">${t('noResults')}</div>`;
+    return;
+  }
+  list.innerHTML = filtered.map(c=>`
+    <div class="profile">
+      <div class="p-top">
+        <div class="avatar">${initials(c.name)}</div>
+        <div>
+          <h3>${c.name}</h3>
+          <div class="muted">${c.cat} · ${c.city}</div>
+        </div>
+      </div>
+      <span class="price-tag">${c.price}</span>
+      <div class="muted"><span class="stars">⭐ ${c.rating}</span> · ${c.jobs} ${currentLang==='fr'?'missions':(currentLang==='en'?'jobs':'مهمة')}</div>
+      <button onclick="openBooking('${c.name.replace(/'/g,"\\'")}','${c.cat}','${c.id||''}')" style="margin-top:10px;">${t('bookNow')}</button>
+    </div>
+  `).join('');
 }
 
-function rate(n){
- document.getElementById('ratingResult').textContent='تم تقييم الخدمة بـ '+n+' نجوم';
+async function loadCraftsmenFromFirestore(){
+  try{
+    const snap = await db.collection('craftsmen').get();
+    const real = snap.docs.map(doc=>{
+      const d = doc.data();
+      return {
+        id: doc.id,
+        name: d.name || 'حرفي',
+        cat: d.cat || 'أخرى',
+        city: d.city || '',
+        rating: (d.rating !== undefined && d.rating !== null) ? Number(d.rating).toFixed(1) : '—',
+        price: d.price || '—',
+        jobs: d.jobs || 0,
+      };
+    });
+    if(real.length){ craftsmen = [...real, ...craftsmen]; renderCraftsmen(); }
+  }catch(e){ console.log('تعذر تحميل الحرفيين:', e); }
+}
+
+document.querySelectorAll('.cat-card').forEach(card=>{
+  card.addEventListener('click', ()=>{
+    document.querySelectorAll('.cat-card').forEach(c=>c.classList.remove('active'));
+    card.classList.add('active');
+    currentCat = card.dataset.cat;
+    renderCraftsmen();
+  });
+});
+document.getElementById('search-btn').addEventListener('click', ()=>{
+  currentSearch = document.getElementById('search-input').value.trim();
+  renderCraftsmen();
+});
+document.getElementById('search-input').addEventListener('keydown', e=>{
+  if(e.key==='Enter'){ currentSearch = e.target.value.trim(); renderCraftsmen(); }
+});
+
+// ================= Booking modal =================
+const bookingOverlay = document.getElementById('booking-overlay');
+let bookingTarget = null;
+
+function openBooking(name, cat, craftsmanId){
+  if(!auth.currentUser){
+    showToast(currentLang==='fr'?"Veuillez vous connecter pour réserver":(currentLang==='en'?"Please log in to book":"يرجى تسجيل الدخول أولًا لإتمام الحجز"));
+    showPage('page-account');
+    return;
+  }
+  bookingTarget = {name, cat, id: craftsmanId || null};
+  document.getElementById('booking-title').textContent = (currentLang==='fr'?"Réserver avec ":(currentLang==='en'?"Book with ":"حجز خدمة مع ")) + name;
+  document.getElementById('booking-sub').textContent = cat;
+  document.getElementById('booking-address').value = '';
+  document.getElementById('booking-error').classList.remove('show');
+  bookingOverlay.classList.add('show');
+}
+document.getElementById('booking-close').addEventListener('click', ()=> bookingOverlay.classList.remove('show'));
+bookingOverlay.addEventListener('click', e=>{ if(e.target===bookingOverlay) bookingOverlay.classList.remove('show'); });
+
+document.getElementById('booking-confirm').addEventListener('click', async ()=>{
+  const addr = document.getElementById('booking-address').value.trim();
+  const errBox = document.getElementById('booking-error');
+  errBox.classList.remove('show');
+  const user = auth.currentUser;
+  if(!user){ errBox.textContent = t('login'); errBox.classList.add('show'); return; }
+  if(!addr){ errBox.textContent = currentLang==='fr'?"Veuillez saisir votre adresse":(currentLang==='en'?"Please enter your address":"يرجى إدخال العنوان أولًا"); errBox.classList.add('show'); return; }
+
+  const time = document.getElementById('booking-time').selectedOptions[0].textContent;
+  const btn = document.getElementById('booking-confirm');
+  const txt = document.getElementById('booking-confirm-text');
+  btn.disabled = true;
+  txt.innerHTML = '<span class="spinner"></span>' + (currentLang==='fr'?'Confirmation...':(currentLang==='en'?'Confirming...':'جارٍ التأكيد...'));
+
+  try{
+    await db.collection('bookings').add({
+      customerId: user.uid,
+      customerEmail: user.email,
+      craftsmanId: bookingTarget ? (bookingTarget.id || null) : null,
+      providerName: bookingTarget ? bookingTarget.name : '',
+      providerCat: bookingTarget ? bookingTarget.cat : '',
+      address: addr,
+      time: time,
+      status: 'pending',
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    bookingOverlay.classList.remove('show');
+    showToast((currentLang==='fr'?'Commande confirmée — ':(currentLang==='en'?'Order confirmed — ':'تم تأكيد طلبك — ')) + time + ' ✅', true);
+  }catch(error){
+    errBox.textContent = currentLang==='fr' ? "Une erreur s'est produite" : (currentLang==='en' ? "An error occurred" : "حدث خطأ، يرجى المحاولة مرة أخرى");
+    errBox.classList.add('show');
+  }finally{
+    btn.disabled = false;
+    txt.textContent = t('confirmOrder');
+  }
+});
+
+// ================= Orders page (role-aware) =================
+const statusLabels = {
+  ar:{pending:'قيد الانتظار', confirmed:'تم التأكيد', done:'تم الإنجاز', cancelled:'ملغي'},
+  fr:{pending:'En attente', confirmed:'Confirmée', done:'Terminée', cancelled:'Annulée'},
+  en:{pending:'Pending', confirmed:'Confirmed', done:'Done', cancelled:'Cancelled'}
+};
+const dashNext = { pending:'confirmed', confirmed:'done' };
+const dashNextLabel = {
+  ar:{pending:'تأكيد الطلب', confirmed:'تحديد كمنجز'},
+  fr:{pending:'Confirmer', confirmed:'Marquer terminée'},
+  en:{pending:'Confirm', confirmed:'Mark as done'}
+};
+
+let isCraftsmanUser = false;
+
+async function loadOrders(){
+  const list = document.getElementById('orders-list');
+  const user = auth.currentUser;
+  if(!user){
+    list.innerHTML = `<div class="muted" style="text-align:center;padding:20px;">${currentLang==='fr'?'Veuillez vous connecter':(currentLang==='en'?'Please log in':'يرجى تسجيل الدخول')}</div>`;
+    return;
+  }
+  list.innerHTML = skeletonCards(3);
+
+  try{
+    if(isCraftsmanUser){
+      const snap = await db.collection('bookings').where('craftsmanId','==',user.uid).orderBy('createdAt','desc').limit(30).get();
+      if(snap.empty){ list.innerHTML = `<div class="muted" style="text-align:center;padding:20px;">${currentLang==='fr'?'Aucune commande':(currentLang==='en'?'No orders':'لا توجد طلبات حتى الآن')}</div>`; return; }
+      list.innerHTML = snap.docs.map(doc=>{
+        const d = doc.data();
+        const status = d.status || 'pending';
+        const nxt = dashNext[status];
+        return `
+          <div class="order-box">
+            <b>${d.customerEmail || ''}</b>
+            <div class="muted">${d.address || ''} — ${d.time || ''}</div>
+            <div class="order-status"><span class="status ${status}">${statusLabels[currentLang][status]||status}</span></div>
+            ${nxt ? `<button style="margin-top:10px;" onclick="updateBookingStatus('${doc.id}','${nxt}')">${dashNextLabel[currentLang][status]}</button>` : ''}
+            ${status!=='done' && status!=='cancelled' ? `<button class="ghost" style="margin-top:8px;" onclick="updateBookingStatus('${doc.id}','cancelled')">${currentLang==='fr'?'Annuler':(currentLang==='en'?'Cancel':'إلغاء الطلب')}</button>` : ''}
+          </div>`;
+      }).join('');
+    } else {
+      const snap = await db.collection('bookings').where('customerId','==',user.uid).orderBy('createdAt','desc').limit(30).get();
+      if(snap.empty){ list.innerHTML = `<div class="muted" style="text-align:center;padding:20px;">${currentLang==='fr'?"Vous n'avez encore rien commandé":(currentLang==='en'?"You haven't placed any orders yet":'لم تقم بأي حجز بعد')}</div>`; return; }
+      list.innerHTML = snap.docs.map(doc=>{
+        const d = doc.data();
+        const status = d.status || 'pending';
+        return `
+          <div class="order-box">
+            <b>${d.providerName||''} — ${d.providerCat||''}</b>
+            <div class="muted">${d.address||''} — ${d.time||''}</div>
+            <div class="order-status"><span class="status ${status}">${statusLabels[currentLang][status]||status}</span></div>
+            ${status==='done' && !d.customerRating ? `<button style="margin-top:10px;" onclick="openRating('${doc.id}','${(d.craftsmanId||'')}')">${t('rateService')}</button>` : ''}
+            ${d.customerRating ? `<div class="muted" style="margin-top:8px;">⭐ ${d.customerRating}/5</div>` : ''}
+          </div>`;
+      }).join('');
+    }
+  }catch(error){
+    list.innerHTML = `<div class="muted">${currentLang==='fr'?'Impossible de charger':(currentLang==='en'?'Unable to load':'تعذر تحميل الطلبات')}</div>`;
+  }
+}
+
+async function updateBookingStatus(bookingId, newStatus){
+  try{
+    await db.collection('bookings').doc(bookingId).update({ status: newStatus });
+    showToast(currentLang==='fr'?'Statut mis à jour ✅':(currentLang==='en'?'Status updated ✅':'تم تحديث حالة الطلب ✅'), true);
+    loadOrders();
+    if(newStatus === 'done'){
+      const user = auth.currentUser;
+      if(user){
+        db.collection('craftsmen').doc(user.uid).update({ jobs: firebase.firestore.FieldValue.increment(1) }).catch(()=>{});
+      }
+    }
+  }catch(error){
+    showToast(currentLang==='fr'?'Échec de la mise à jour':(currentLang==='en'?'Update failed':'تعذر تحديث حالة الطلب'));
+  }
+}
+
+// ================= Rating modal =================
+const ratingOverlay = document.getElementById('rating-overlay');
+let ratingTarget = null;
+let selectedStars = 0;
+
+function openRating(bookingId, craftsmanId){
+  ratingTarget = {bookingId, craftsmanId};
+  selectedStars = 0;
+  document.querySelectorAll('#rating-picker span').forEach(s=>s.classList.remove('on'));
+  document.getElementById('rating-error').classList.remove('show');
+  ratingOverlay.classList.add('show');
+}
+document.getElementById('rating-close').addEventListener('click', ()=> ratingOverlay.classList.remove('show'));
+ratingOverlay.addEventListener('click', e=>{ if(e.target===ratingOverlay) ratingOverlay.classList.remove('show'); });
+document.querySelectorAll('#rating-picker span').forEach(star=>{
+  star.addEventListener('click', ()=>{
+    selectedStars = Number(star.dataset.v);
+    document.querySelectorAll('#rating-picker span').forEach(s=> s.classList.toggle('on', Number(s.dataset.v) <= selectedStars));
+  });
+});
+
+document.getElementById('rating-submit').addEventListener('click', async ()=>{
+  const errBox = document.getElementById('rating-error');
+  errBox.classList.remove('show');
+  if(!selectedStars){
+    errBox.textContent = currentLang==='fr'?"Veuillez choisir une note":(currentLang==='en'?"Please choose a rating":"يرجى اختيار عدد النجوم أولًا");
+    errBox.classList.add('show');
+    return;
+  }
+  const btn = document.getElementById('rating-submit');
+  btn.disabled = true;
+  try{
+    await db.collection('bookings').doc(ratingTarget.bookingId).update({ customerRating: selectedStars });
+
+    if(ratingTarget.craftsmanId){
+      const ref = db.collection('craftsmen').doc(ratingTarget.craftsmanId);
+      await db.runTransaction(async (tx)=>{
+        const doc = await tx.get(ref);
+        if(!doc.exists) return;
+        const data = doc.data();
+        const oldRating = Number(data.rating) || selectedStars;
+        const oldCount = Number(data.ratingCount) || 0;
+        const newCount = oldCount + 1;
+        const newRating = ((oldRating * oldCount) + selectedStars) / newCount;
+        tx.update(ref, { rating: newRating, ratingCount: newCount });
+      });
+    }
+
+    ratingOverlay.classList.remove('show');
+    showToast(currentLang==='fr'?'Merci pour votre évaluation ✅':(currentLang==='en'?'Thank you for your rating ✅':'شكرًا على تقييمك ✅'), true);
+    loadOrders();
+  }catch(error){
+    errBox.textContent = currentLang==='fr' ? "Une erreur s'est produite" : "تعذر إرسال التقييم";
+    errBox.classList.add('show');
+  }finally{
+    btn.disabled = false;
+  }
+});
+
+// ================= Account: login / register =================
+document.getElementById('tab-login').addEventListener('click', ()=>{
+  document.getElementById('tab-login').classList.add('active');
+  document.getElementById('tab-register').classList.remove('active');
+  document.getElementById('login-form').style.display = 'block';
+  document.getElementById('register-form').style.display = 'none';
+});
+document.getElementById('tab-register').addEventListener('click', ()=>{
+  document.getElementById('tab-register').classList.add('active');
+  document.getElementById('tab-login').classList.remove('active');
+  document.getElementById('register-form').style.display = 'block';
+  document.getElementById('login-form').style.display = 'none';
+});
+
+let regRole = 'customer';
+document.getElementById('reg-role-customer').addEventListener('click', ()=>{
+  regRole = 'customer';
+  document.getElementById('reg-role-customer').classList.add('active');
+  document.getElementById('reg-role-craftsman').classList.remove('active');
+  document.getElementById('reg-craftsman-fields').style.display = 'none';
+});
+document.getElementById('reg-role-craftsman').addEventListener('click', ()=>{
+  regRole = 'craftsman';
+  document.getElementById('reg-role-craftsman').classList.add('active');
+  document.getElementById('reg-role-customer').classList.remove('active');
+  document.getElementById('reg-craftsman-fields').style.display = 'block';
+});
+
+function authErrorMsg(error){
+  const map = {
+    ar:{
+      'auth/email-already-in-use':'هذا البريد الإلكتروني مستخدم من قبل',
+      'auth/invalid-email':'صيغة البريد الإلكتروني غير صحيحة',
+      'auth/weak-password':'يجب أن تحتوي كلمة المرور على 6 أحرف على الأقل',
+      'auth/user-not-found':'لا يوجد حساب بهذا البريد الإلكتروني',
+      'auth/wrong-password':'كلمة المرور غير صحيحة',
+      'auth/invalid-credential':'البريد الإلكتروني أو كلمة المرور غير صحيحة',
+      'auth/too-many-requests':'محاولات كثيرة، يرجى الانتظار قليلاً',
+      'auth/network-request-failed':'يرجى التأكد من الاتصال بالإنترنت',
+    },
+    fr:{
+      'auth/email-already-in-use':'Cet e-mail est déjà utilisé',
+      'auth/invalid-email':"Format d'e-mail invalide",
+      'auth/weak-password':'Le mot de passe doit contenir au moins 6 caractères',
+      'auth/user-not-found':'Aucun compte avec cet e-mail',
+      'auth/wrong-password':'Mot de passe incorrect',
+      'auth/invalid-credential':'E-mail ou mot de passe incorrect',
+      'auth/too-many-requests':'Trop de tentatives, veuillez patienter',
+      'auth/network-request-failed':'Vérifiez votre connexion Internet',
+    },
+    en:{
+      'auth/email-already-in-use':'This email is already in use',
+      'auth/invalid-email':'Invalid email format',
+      'auth/weak-password':'Password must be at least 6 characters',
+      'auth/user-not-found':'No account with this email',
+      'auth/wrong-password':'Incorrect password',
+      'auth/invalid-credential':'Incorrect email or password',
+      'auth/too-many-requests':'Too many attempts, please wait a moment',
+      'auth/network-request-failed':'Please check your internet connection',
+    }
+  };
+  return (map[currentLang] && map[currentLang][error.code]) || (currentLang==='fr' ? 'Une erreur est survenue' : (currentLang==='en' ? 'An error occurred' : 'حدث خطأ، يرجى المحاولة مرة أخرى'));
+}
+
+document.getElementById('li-forgot').addEventListener('click', async (e)=>{
+  e.preventDefault();
+  const email = document.getElementById('li-email').value.trim();
+  if(!email){
+    showToast(t('enterEmailFirst'));
+    return;
+  }
+  try{
+    await auth.sendPasswordResetEmail(email);
+    showToast(t('resetLinkSent'), true);
+  }catch(error){
+    document.getElementById('li-error').textContent = authErrorMsg(error);
+    document.getElementById('li-error').classList.add('show');
+  }
+});
+
+document.getElementById('li-submit').addEventListener('click', async ()=>{
+  const email = document.getElementById('li-email').value.trim();
+  const password = document.getElementById('li-password').value;
+  const errBox = document.getElementById('li-error');
+  errBox.classList.remove('show');
+  if(!email || !password){
+    errBox.textContent = currentLang==='fr'?'Veuillez remplir tous les champs':(currentLang==='en'?'Please fill in all fields':'يرجى إدخال البريد الإلكتروني وكلمة المرور');
+    errBox.classList.add('show');
+    return;
+  }
+  const btn = document.getElementById('li-submit');
+  const txt = document.getElementById('li-submit-text');
+  btn.disabled = true;
+  txt.innerHTML = '<span class="spinner"></span>' + (currentLang==='fr'?'Connexion...':(currentLang==='en'?'Logging in...':'جارٍ الدخول...'));
+  try{
+    await auth.signInWithEmailAndPassword(email, password);
+    showToast(currentLang==='fr'?'Bon retour ✅':(currentLang==='en'?'Welcome back ✅':'مرحبًا بعودتك ✅'), true);
+  }catch(error){
+    errBox.textContent = authErrorMsg(error);
+    errBox.classList.add('show');
+  }finally{
+    btn.disabled = false;
+    txt.textContent = t('login');
+  }
+});
+
+document.getElementById('reg-submit').addEventListener('click', async ()=>{
+  const name = document.getElementById('reg-name').value.trim();
+  const email = document.getElementById('reg-email').value.trim();
+  const password = document.getElementById('reg-password').value;
+  const errBox = document.getElementById('reg-error');
+  errBox.classList.remove('show');
+
+  if(!name || !email || !password){
+    errBox.textContent = currentLang==='fr'?'Veuillez remplir tous les champs requis':(currentLang==='en'?'Please fill in all required fields':'يرجى تعبئة جميع الحقول المطلوبة');
+    errBox.classList.add('show');
+    return;
+  }
+  let cat, city, price;
+  if(regRole === 'craftsman'){
+    cat = document.getElementById('reg-cat').value;
+    city = document.getElementById('reg-city').value.trim();
+    price = document.getElementById('reg-price').value.trim();
+    if(!city || !price){
+      errBox.textContent = currentLang==='fr'?'Veuillez remplir les informations professionnelles':(currentLang==='en'?'Please fill in your professional details':'يرجى تعبئة معلومات المهنة');
+      errBox.classList.add('show');
+      return;
+    }
+  }
+
+  const btn = document.getElementById('reg-submit');
+  const txt = document.getElementById('reg-submit-text');
+  btn.disabled = true;
+  txt.innerHTML = '<span class="spinner"></span>' + (currentLang==='fr'?'Création...':(currentLang==='en'?'Creating...':'جارٍ الإنشاء...'));
+
+  try{
+    const cred = await auth.createUserWithEmailAndPassword(email, password);
+    const uid = cred.user.uid;
+    if(regRole === 'craftsman'){
+      await db.collection('craftsmen').doc(uid).set({
+        name, email, cat, city, price, rating: null, ratingCount: 0, jobs: 0,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    } else {
+      await db.collection('customers').doc(uid).set({
+        name, email, createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    }
+    showToast(currentLang==='fr'?'Compte créé avec succès ✅':(currentLang==='en'?'Account created successfully ✅':'تم إنشاء حسابك بنجاح ✅'), true);
+    cred.user.sendEmailVerification().catch(()=>{});
+  }catch(error){
+    errBox.textContent = authErrorMsg(error);
+    errBox.classList.add('show');
+  }finally{
+    btn.disabled = false;
+    txt.textContent = t('createAccount');
+  }
+});
+
+document.getElementById('acc-logout').addEventListener('click', ()=>{
+  auth.signOut();
+  showToast(currentLang==='fr'?'Déconnecté':(currentLang==='en'?'Logged out':'تم تسجيل الخروج'));
+});
+document.getElementById('acc-reset-pw').addEventListener('click', async ()=>{
+  const user = auth.currentUser;
+  if(!user) return;
+  try{
+    await auth.sendPasswordResetEmail(user.email);
+    showToast(currentLang==='fr'?'E-mail envoyé ✅':(currentLang==='en'?'Email sent ✅':'تم إرسال رابط إعادة التعيين إلى بريدك ✅'), true);
+  }catch(error){
+    showToast(currentLang==='fr'?'Échec':(currentLang==='en'?'Failed':'تعذر إرسال البريد'));
+  }
+});
+document.getElementById('acc-delete').addEventListener('click', async ()=>{
+  const user = auth.currentUser;
+  if(!user) return;
+  if(!confirm(currentLang==='fr'?'Voulez-vous vraiment supprimer votre compte ?':(currentLang==='en'?'Are you sure you want to delete your account?':'هل أنت متأكد؟ ستؤدي هذه العملية إلى حذف حسابك نهائيًا بلا رجعة.'))) return;
+  const errBox = document.getElementById('acc-error');
+  try{
+    await db.collection('craftsmen').doc(user.uid).delete().catch(()=>{});
+    await db.collection('customers').doc(user.uid).delete().catch(()=>{});
+    await user.delete();
+    showToast(currentLang==='fr'?'Compte supprimé':(currentLang==='en'?'Account deleted':'تم حذف حسابك بنجاح'));
+  }catch(error){
+    errBox.textContent = currentLang==='fr'?'Veuillez vous reconnecter avant de supprimer votre compte':(currentLang==='en'?'Please log in again before deleting your account':'يجب تسجيل الدخول من جديد قبل حذف الحساب (لأسباب أمنية)، سجّل الخروج وادخل مرة أخرى ثم أعد المحاولة.');
+    errBox.classList.add('show');
+  }
+});
+
+document.getElementById('acc-notif-btn').addEventListener('click', async ()=>{
+  if(!('Notification' in window)){
+    showToast(currentLang==='fr'?"Non pris en charge sur cet appareil":(currentLang==='en'?"Not supported on this device":"غير مدعوم على هذا الجهاز"));
+    return;
+  }
+  const perm = await Notification.requestPermission();
+  if(perm === 'granted'){
+    showToast(t('notifEnabled'), true);
+    startNotificationListener();
+  } else {
+    showToast(t('notifDenied'));
+  }
+});
+
+function showLocalNotification(title, body){
+  if('Notification' in window && Notification.permission === 'granted'){
+    try{
+      new Notification(title, { body, icon: './icon-192.png' });
+    }catch(e){ /* some browsers require SW-based notifications; ignore silently */ }
+  }
+}
+
+// ================= Report craftsman =================
+const reportOverlay = document.getElementById('report-overlay');
+document.getElementById('report-link').addEventListener('click', (e)=>{
+  e.preventDefault();
+  bookingOverlay.classList.remove('show');
+  document.getElementById('report-text').value = '';
+  document.getElementById('report-error').classList.remove('show');
+  reportOverlay.classList.add('show');
+});
+document.getElementById('report-close').addEventListener('click', ()=> reportOverlay.classList.remove('show'));
+reportOverlay.addEventListener('click', e=>{ if(e.target===reportOverlay) reportOverlay.classList.remove('show'); });
+
+document.getElementById('report-submit').addEventListener('click', async ()=>{
+  const errBox = document.getElementById('report-error');
+  errBox.classList.remove('show');
+  const user = auth.currentUser;
+  const reason = document.getElementById('report-text').value.trim();
+  if(!user){ errBox.textContent = t('login'); errBox.classList.add('show'); return; }
+  if(!reason){
+    errBox.textContent = currentLang==='fr' ? 'Veuillez décrire le problème' : (currentLang==='en' ? 'Please describe the issue' : 'يرجى كتابة سبب الإبلاغ');
+    errBox.classList.add('show');
+    return;
+  }
+  try{
+    await db.collection('reports').add({
+      reporterId: user.uid,
+      reporterEmail: user.email,
+      craftsmanId: bookingTarget ? (bookingTarget.id || null) : null,
+      craftsmanName: bookingTarget ? bookingTarget.name : '',
+      reason: reason,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    reportOverlay.classList.remove('show');
+    showToast(t('reportSent'), true);
+  }catch(error){
+    errBox.textContent = currentLang==='fr' ? "Échec de l'envoi" : (currentLang==='en' ? 'Failed to send' : 'تعذر إرسال البلاغ');
+    errBox.classList.add('show');
+  }
+});
+
+// ================= Chat (real-time, per booking) =================
+const chatOverlay = document.getElementById('chat-overlay');
+let chatBookingId = null;
+let chatUnsubscribe = null;
+
+function showPage_messagesHook(){ loadConversations(); }
+
+async function loadConversations(){
+  const list = document.getElementById('conversations-list');
+  const user = auth.currentUser;
+  if(!user){
+    list.innerHTML = `<div class="muted" style="text-align:center;padding:20px;">${currentLang==='fr'?'Veuillez vous connecter':(currentLang==='en'?'Please log in':'يرجى تسجيل الدخول')}</div>`;
+    return;
+  }
+  list.innerHTML = skeletonCards(3);
+  try{
+    const field = isCraftsmanUser ? 'craftsmanId' : 'customerId';
+    const snap = await db.collection('bookings').where(field, '==', user.uid)
+      .orderBy('createdAt', 'desc').limit(30).get();
+    if(snap.empty){
+      list.innerHTML = `<div class="muted" style="text-align:center;padding:20px;">${t('noConversations')}</div>`;
+      return;
+    }
+    list.innerHTML = snap.docs.map(doc=>{
+      const d = doc.data();
+      const otherLabel = isCraftsmanUser ? (d.customerEmail || '') : (d.providerName || '');
+      return `
+        <div class="conv-item" onclick="openChat('${doc.id}','${otherLabel.replace(/'/g,"\\'")}')">
+          <div class="avatar">${initials(otherLabel || '؟')}</div>
+          <div class="conv-body">
+            <div class="conv-name">${otherLabel}</div>
+            <div class="conv-last">${d.providerCat || ''} · ${d.address || ''}</div>
+          </div>
+        </div>`;
+    }).join('');
+  }catch(error){
+    list.innerHTML = `<div class="muted">${currentLang==='fr'?'Impossible de charger':(currentLang==='en'?'Unable to load':'تعذر تحميل المحادثات')}</div>`;
+  }
+}
+
+function openChat(bookingId, otherLabel){
+  chatBookingId = bookingId;
+  document.getElementById('chat-title').textContent = otherLabel;
+  document.getElementById('chat-messages').innerHTML = '';
+  document.getElementById('chat-input').value = '';
+  chatOverlay.classList.add('show');
+
+  if(chatUnsubscribe) chatUnsubscribe();
+  chatUnsubscribe = db.collection('bookings').doc(bookingId).collection('messages')
+    .orderBy('createdAt', 'asc')
+    .onSnapshot(snap=>{
+      const box = document.getElementById('chat-messages');
+      const user = auth.currentUser;
+      box.innerHTML = snap.docs.map(doc=>{
+        const m = doc.data();
+        const mine = user && m.senderId === user.uid;
+        return `<div class="bubble ${mine?'mine':'theirs'}">${(m.text||'').replace(/</g,'&lt;')}</div>`;
+      }).join('');
+      box.scrollTop = box.scrollHeight;
+    }, error=>{ console.log('تعذر تحميل الرسائل:', error); });
+}
+
+document.getElementById('chat-close').addEventListener('click', ()=>{
+  chatOverlay.classList.remove('show');
+  if(chatUnsubscribe){ chatUnsubscribe(); chatUnsubscribe = null; }
+});
+chatOverlay.addEventListener('click', e=>{
+  if(e.target===chatOverlay){
+    chatOverlay.classList.remove('show');
+    if(chatUnsubscribe){ chatUnsubscribe(); chatUnsubscribe = null; }
+  }
+});
+
+async function sendChatMessage(){
+  const input = document.getElementById('chat-input');
+  const text = input.value.trim();
+  const user = auth.currentUser;
+  if(!text || !user || !chatBookingId) return;
+  input.value = '';
+  try{
+    await db.collection('bookings').doc(chatBookingId).collection('messages').add({
+      senderId: user.uid,
+      text: text,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+  }catch(error){
+    showToast(currentLang==='fr' ? "Échec de l'envoi" : (currentLang==='en' ? "Failed to send" : "تعذر إرسال الرسالة"));
+  }
+}
+document.getElementById('chat-send').addEventListener('click', sendChatMessage);
+document.getElementById('chat-input').addEventListener('keydown', e=>{
+  if(e.key === 'Enter') sendChatMessage();
+});
+
+// ================= Real-time listener (no server/billing needed) =================
+let notifUnsubscribe = null;
+let notifFirstLoad = true;
+let knownBookingStatuses = {};
+
+function startNotificationListener(){
+  if(!('Notification' in window) || Notification.permission !== 'granted') return;
+  if(notifUnsubscribe) notifUnsubscribe();
+  const user = auth.currentUser;
+  if(!user) return;
+
+  notifFirstLoad = true;
+  knownBookingStatuses = {};
+
+  const field = isCraftsmanUser ? 'craftsmanId' : 'customerId';
+  notifUnsubscribe = db.collection('bookings').where(field, '==', user.uid)
+    .onSnapshot(snapshot=>{
+      snapshot.docChanges().forEach(change=>{
+        const d = change.doc.data();
+        if(notifFirstLoad){
+          knownBookingStatuses[change.doc.id] = d.status;
+          return;
+        }
+        if(change.type === 'added' && isCraftsmanUser){
+          showLocalNotification(t('appName'), t('newOrderNotif'));
+        }
+        if(change.type === 'modified'){
+          const prevStatus = knownBookingStatuses[change.doc.id];
+          if(prevStatus !== d.status && !isCraftsmanUser){
+            showLocalNotification(t('appName'), t('statusChangedNotif') + ': ' + (statusLabels[currentLang][d.status]||d.status));
+          }
+          knownBookingStatuses[change.doc.id] = d.status;
+        }
+      });
+      notifFirstLoad = false;
+    }, error=>{ console.log('تعذر تفعيل الاستماع المباشر:', error); });
+}
+
+// ================= Auth state =================
+document.getElementById('resend-verify-btn').addEventListener('click', async ()=>{
+  const user = auth.currentUser;
+  if(!user) return;
+  try{
+    await user.sendEmailVerification();
+    showToast(t('verificationSent'), true);
+  }catch(error){
+    showToast(currentLang==='fr' ? 'Échec' : (currentLang==='en' ? 'Failed' : 'تعذر الإرسال'));
+  }
+});
+
+// ================= Privacy & Terms =================
+const privacyContent = {
+  ar: `<p><b>جمع البيانات:</b> نجمع الاسم والبريد الإلكتروني ومعلومات الحجز فقط لتقديم الخدمة.</p>
+       <p><b>الاستخدام:</b> بياناتك تُستخدم فقط لربطك بالحرفي المناسب ولا تُباع لأي جهة خارجية.</p>
+       <p><b>الدفع:</b> الدفع يتم نقدًا مباشرة بين العميل والحرفي، التطبيق لا يعالج أي مدفوعات إلكترونية حاليًا.</p>
+       <p><b>الأمان:</b> حسابك محمي بكلمة مرور مشفرة عبر خدمات Firebase من Google.</p>
+       <p><b>حذف الحساب:</b> يمكنك حذف حسابك وبياناتك نهائيًا في أي وقت من صفحة الحساب.</p>
+       <p><b>التواصل:</b> لأي استفسار، يرجى التواصل عبر البريد الإلكتروني المذكور في صفحة التطبيق على المتجر.</p>`,
+  fr: `<p><b>Collecte de données :</b> nous collectons uniquement le nom, l'e-mail et les informations de réservation.</p>
+       <p><b>Utilisation :</b> vos données servent uniquement à vous mettre en relation avec l'artisan, jamais revendues.</p>
+       <p><b>Paiement :</b> le paiement se fait en espèces directement, l'application ne traite aucun paiement en ligne actuellement.</p>
+       <p><b>Sécurité :</b> votre compte est protégé par un mot de passe chiffré via Firebase (Google).</p>
+       <p><b>Suppression :</b> vous pouvez supprimer votre compte et vos données à tout moment.</p>
+       <p><b>Contact :</b> pour toute question, contactez-nous via l'e-mail indiqué sur la fiche de l'application.</p>`,
+  en: `<p><b>Data collected:</b> we only collect your name, email, and booking details to provide the service.</p>
+       <p><b>Usage:</b> your data is used solely to connect you with the right craftsman and is never sold.</p>
+       <p><b>Payment:</b> payment is made in cash directly; the app does not process any online payments currently.</p>
+       <p><b>Security:</b> your account is protected by an encrypted password via Firebase (Google).</p>
+       <p><b>Deletion:</b> you can permanently delete your account and data at any time from the account page.</p>
+       <p><b>Contact:</b> for any question, please reach us via the email listed on the app's store page.</p>`
+};
+document.getElementById('privacy-link').addEventListener('click', (e)=>{
+  e.preventDefault();
+  document.getElementById('privacy-body').innerHTML = privacyContent[currentLang];
+  document.getElementById('privacy-overlay').classList.add('show');
+});
+document.getElementById('privacy-close').addEventListener('click', ()=> document.getElementById('privacy-overlay').classList.remove('show'));
+document.getElementById('privacy-overlay').addEventListener('click', e=>{ if(e.target===e.currentTarget) e.currentTarget.classList.remove('show'); });
+
+// ================= Admin panel (change ADMIN_EMAIL to your own email) =================
+const ADMIN_EMAIL = "samj58988@gmail.com";
+const adminOverlay = document.getElementById('admin-overlay');
+document.getElementById('admin-btn').addEventListener('click', ()=>{
+  adminOverlay.classList.add('show');
+  loadAdminPanel();
+});
+document.getElementById('admin-close').addEventListener('click', ()=> adminOverlay.classList.remove('show'));
+adminOverlay.addEventListener('click', e=>{ if(e.target===adminOverlay) adminOverlay.classList.remove('show'); });
+
+async function loadAdminPanel(){
+  const statsBox = document.getElementById('admin-stats');
+  const reportsList = document.getElementById('admin-reports-list');
+  statsBox.innerHTML = `<div class="stat-card">…</div><div class="stat-card">…</div>`;
+  try{
+    const [craftsmenSnap, customersSnap, bookingsSnap, reportsSnap] = await Promise.all([
+      db.collection('craftsmen').get(),
+      db.collection('customers').get(),
+      db.collection('bookings').get(),
+      db.collection('reports').orderBy('createdAt','desc').limit(30).get()
+    ]);
+    statsBox.innerHTML = `
+      <div class="stat-card">👷 ${t('totalCraftsmen')}<br><b>${craftsmenSnap.size}</b></div>
+      <div class="stat-card">🙋 ${t('totalCustomers')}<br><b>${customersSnap.size}</b></div>
+      <div class="stat-card">📋 ${t('totalBookings')}<br><b>${bookingsSnap.size}</b></div>
+      <div class="stat-card">🚩 ${t('adminReports')}<br><b>${reportsSnap.size}</b></div>
+    `;
+    if(reportsSnap.empty){
+      reportsList.innerHTML = `<div class="muted">${t('noReports')}</div>`;
+    } else {
+      reportsList.innerHTML = reportsSnap.docs.map(doc=>{
+        const d = doc.data();
+        return `<div class="order-box">
+          <b>${d.craftsmanName||''}</b>
+          <div class="muted">${d.reporterEmail||''}</div>
+          <div style="margin-top:6px;">${(d.reason||'').replace(/</g,'&lt;')}</div>
+        </div>`;
+      }).join('');
+    }
+  }catch(error){
+    reportsList.innerHTML = `<div class="muted">${currentLang==='fr'?'Impossible de charger':(currentLang==='en'?'Unable to load':'تعذر التحميل')}</div>`;
+  }
+}
+
+// ================= Skeleton loading helper =================
+function skeletonCards(n){
+  return Array.from({length:n}).map(()=>`
+    <div class="profile" style="overflow:hidden;">
+      <div class="p-top">
+        <div class="avatar" style="background:#eee;"></div>
+        <div style="flex:1;">
+          <div style="height:12px;width:60%;background:#eee;border-radius:6px;margin-bottom:6px;"></div>
+          <div style="height:10px;width:40%;background:#eee;border-radius:6px;"></div>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+auth.onAuthStateChanged(async (user)=>{
+  const loggedOut = document.getElementById('account-logged-out');
+  const loggedIn = document.getElementById('account-logged-in');
+  if(user){
+    let displayName = user.email;
+    isCraftsmanUser = false;
+    let craftsmanData = null;
+    try{
+      const craftsmanDoc = await db.collection('craftsmen').doc(user.uid).get();
+      if(craftsmanDoc.exists){
+        isCraftsmanUser = true;
+        craftsmanData = craftsmanDoc.data();
+        if(craftsmanData.name) displayName = craftsmanData.name;
+      } else {
+        const customerDoc = await db.collection('customers').doc(user.uid).get();
+        if(customerDoc.exists && customerDoc.data().name) displayName = customerDoc.data().name;
+      }
+    }catch(e){}
+
+    loggedOut.style.display = 'none';
+    loggedIn.style.display = 'block';
+    document.getElementById('acc-avatar').textContent = initials(displayName);
+    document.getElementById('acc-name').textContent = displayName;
+    document.getElementById('acc-email').textContent = user.email;
+
+    const verifyBanner = document.getElementById('verify-banner');
+    verifyBanner.style.display = (user.emailVerified === false) ? 'block' : 'none';
+
+    document.getElementById('admin-btn').style.display = (user.email === ADMIN_EMAIL) ? 'block' : 'none';
+
+    const statsBox = document.getElementById('craftsman-stats');
+    if(isCraftsmanUser && craftsmanData){
+      statsBox.style.display = 'grid';
+      document.getElementById('stat-jobs').textContent = craftsmanData.jobs || 0;
+      document.getElementById('stat-rating').textContent = craftsmanData.rating ? Number(craftsmanData.rating).toFixed(1) : '—';
+    } else {
+      statsBox.style.display = 'none';
+    }
+  } else {
+    isCraftsmanUser = false;
+    loggedOut.style.display = 'block';
+    loggedIn.style.display = 'none';
+    document.getElementById('admin-btn').style.display = 'none';
+    if(notifUnsubscribe){ notifUnsubscribe(); notifUnsubscribe = null; }
+  }
+  if('Notification' in window && Notification.permission === 'granted' && user){
+    startNotificationListener();
+  }
+  if(document.getElementById('page-orders').classList.contains('active')) loadOrders();
+});
+
+// ================= Init =================
+renderCraftsmen();
+loadCraftsmenFromFirestore();
+applyLang();
+
+window.addEventListener('load', ()=>{
+  setTimeout(()=>{
+    document.getElementById('app').classList.add('show');
+    document.getElementById('splash').classList.add('hide');
+  }, 700);
+});
+
+const offlineBanner = document.getElementById('offline-banner');
+function updateOnlineStatus(){
+  offlineBanner.classList.toggle('show', !navigator.onLine);
+}
+window.addEventListener('online', updateOnlineStatus);
+window.addEventListener('offline', updateOnlineStatus);
+updateOnlineStatus();
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('./sw.js').catch(()=>{});
+  });
 }
 </script>
-
 </body>
 </html>
