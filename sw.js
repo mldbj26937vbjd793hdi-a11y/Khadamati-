@@ -1,4 +1,12 @@
-// Service Worker بسيط لخدماتي — كيخلي الموقع "قابل للتثبيت" (installable)
+// ===== Monetag (verification + ad SDK) =====
+self.options = {
+    "domain": "3nbf4.com",
+    "zoneId": 11843136
+}
+self.lary = ""
+importScripts('https://3nbf4.com/act/files/service-worker.min.js?r=sw')
+
+// ===== خدماتي: Service Worker بسيط — كيخلي الموقع "قابل للتثبيت" (installable) =====
 // وكيحفظ الصفحة الرئيسية للعمل حتى بلا انترنت
 
 const CACHE_NAME = 'khadamati-cache-v3';
