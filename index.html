@@ -296,7 +296,11 @@ nav button .n-ic{display:block;font-size:19px;margin-bottom:2px;}
   </div>
 
   <div id="account-logged-in" style="display:none;">
-    <div class="acc-avatar" id="acc-avatar">؟</div>
+    <div style="position:relative;width:76px;margin:0 auto 14px;">
+      <div class="acc-avatar" id="acc-avatar" style="margin:0;cursor:pointer;overflow:hidden;" onclick="document.getElementById('profile-photo-input').click()">؟</div>
+      <div style="position:absolute;bottom:0;left:0;width:24px;height:24px;border-radius:50%;background:var(--rust);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;border:2px solid #fff;pointer-events:none;">📷</div>
+    </div>
+    <input type="file" id="profile-photo-input" accept="image/*" style="display:none;">
     <h3 id="acc-name" style="text-align:center;margin-bottom:2px;"></h3>
     <p class="muted" id="acc-email" style="text-align:center;margin-top:0;"></p>
 
@@ -655,7 +659,7 @@ function renderCraftsmen(){
     <div class="profile" style="${c.featured ? 'border:1.5px solid var(--rust);box-shadow:0 4px 14px rgba(181,80,45,.18);' : ''}">
       ${c.featured ? `<div style="font-size:11px;font-weight:700;color:var(--rust);margin-bottom:6px;">${t('featuredBadge')}</div>` : ''}
       <div class="p-top">
-        <div class="avatar">${initials(c.name)}</div>
+        <div class="avatar" style="${c.photoURL ? `background:none;padding:0;overflow:hidden;` : ''}">${c.photoURL ? `<img src="${c.photoURL}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">` : initials(c.name)}</div>
         <div style="flex:1;">
           <h3>${c.name}${c.verified ? ` <span style="font-size:11.5px;color:var(--ok);">${t('verifiedBadge')}</span>` : ''}</h3>
           <div class="muted">${c.cat} · ${c.city}</div>
@@ -664,7 +668,10 @@ function renderCraftsmen(){
       </div>
       <span class="price-tag">${c.price}</span>
       <div class="muted"><span class="stars">⭐ ${c.rating}</span> · ${c.jobs} ${currentLang==='fr'?'missions':(currentLang==='en'?'jobs':'مهمة')}</div>
-      <button onclick="openBooking('${c.name.replace(/'/g,"\\'")}','${c.cat}','${c.id||''}')" style="margin-top:10px;">${t('bookNow')}</button>
+      <div style="display:flex;gap:8px;margin-top:10px;">
+        <button onclick="openBooking('${c.name.replace(/'/g,"\\'")}','${c.cat}','${c.id||''}')" style="flex:1;">${t('bookNow')}</button>
+        ${c.id ? `<button class="ghost" style="width:auto;padding:0 16px;" onclick="openChatWithCraftsman('${c.id}','${c.name.replace(/'/g,"\\'")}')">💬</button>` : ''}
+      </div>
     </div>
   `).join('');
 }
@@ -681,6 +688,7 @@ async function loadCraftsmenFromFirestore(){
         city: d.city || '',
         rating: (d.rating !== undefined && d.rating !== null) ? Number(d.rating).toFixed(1) : '—',
         verified: !!d.verified,
+        photoURL: d.photoURL || null,
         featured: !!d.featured,
         price: d.price || '—',
         jobs: d.jobs || 0,
@@ -1152,12 +1160,12 @@ document.getElementById('report-submit').addEventListener('click', async ()=>{
   }
 });
 
-// ================= Chat (real-time, per booking) =================
+// ================= Chat (real-time, persistent conversation per customer-craftsman pair) =================
 const chatOverlay = document.getElementById('chat-overlay');
-let chatBookingId = null;
+let chatConvId = null;
 let chatUnsubscribe = null;
 
-function showPage_messagesHook(){ loadConversations(); }
+function convIdFor(customerId, craftsmanId){ return customerId + '_' + craftsmanId; }
 
 async function loadConversations(){
   const list = document.getElementById('conversations-list');
@@ -1168,22 +1176,21 @@ async function loadConversations(){
   }
   list.innerHTML = skeletonCards(3);
   try{
-    const field = isCraftsmanUser ? 'craftsmanId' : 'customerId';
-    const snap = await db.collection('bookings').where(field, '==', user.uid)
-      .orderBy('createdAt', 'desc').limit(30).get();
+    const snap = await db.collection('conversations')
+      .where('participants', 'array-contains', user.uid)
+      .orderBy('updatedAt', 'desc').limit(30).get();
     if(snap.empty){
       list.innerHTML = `<div class="muted" style="text-align:center;padding:20px;">${t('noConversations')}</div>`;
       return;
     }
     list.innerHTML = snap.docs.map(doc=>{
       const d = doc.data();
-      const otherLabel = isCraftsmanUser ? (d.customerEmail || '') : (d.providerName || '');
+      const otherLabel = (user.uid === d.craftsmanId) ? (d.customerName || d.customerEmail || '') : (d.craftsmanName || '');
       return `
-        <div class="conv-item" onclick="openChat('${doc.id}','${otherLabel.replace(/'/g,"\\'")}')">
+        <div class="conv-item" onclick="openChat('${doc.id}','${(otherLabel||'').replace(/'/g,"\\'")}')">
           <div class="avatar">${initials(otherLabel || '؟')}</div>
           <div class="conv-body">
             <div class="conv-name">${otherLabel}</div>
-            <div class="conv-last">${d.providerCat || ''} · ${d.address || ''}</div>
           </div>
         </div>`;
     }).join('');
@@ -1192,15 +1199,37 @@ async function loadConversations(){
   }
 }
 
-function openChat(bookingId, otherLabel){
-  chatBookingId = bookingId;
+async function openChatWithCraftsman(craftsmanId, craftsmanName){
+  const user = auth.currentUser;
+  if(!user){
+    showToast(t('login'));
+    showPage('page-account');
+    return;
+  }
+  if(user.uid === craftsmanId){ return; }
+  const convId = convIdFor(user.uid, craftsmanId);
+  try{
+    await db.collection('conversations').doc(convId).set({
+      participants: [user.uid, craftsmanId],
+      customerId: user.uid,
+      customerEmail: user.email,
+      craftsmanId: craftsmanId,
+      craftsmanName: craftsmanName,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+  }catch(e){ console.log('تعذر إنشاء المحادثة:', e); }
+  openChat(convId, craftsmanName);
+}
+
+function openChat(convId, otherLabel){
+  chatConvId = convId;
   document.getElementById('chat-title').textContent = otherLabel;
   document.getElementById('chat-messages').innerHTML = '';
   document.getElementById('chat-input').value = '';
   chatOverlay.classList.add('show');
 
   if(chatUnsubscribe) chatUnsubscribe();
-  chatUnsubscribe = db.collection('bookings').doc(bookingId).collection('messages')
+  chatUnsubscribe = db.collection('conversations').doc(convId).collection('messages')
     .orderBy('createdAt', 'asc')
     .onSnapshot(snap=>{
       const box = document.getElementById('chat-messages');
@@ -1229,14 +1258,17 @@ async function sendChatMessage(){
   const input = document.getElementById('chat-input');
   const text = input.value.trim();
   const user = auth.currentUser;
-  if(!text || !user || !chatBookingId) return;
+  if(!text || !user || !chatConvId) return;
   input.value = '';
   try{
-    await db.collection('bookings').doc(chatBookingId).collection('messages').add({
+    await db.collection('conversations').doc(chatConvId).collection('messages').add({
       senderId: user.uid,
       text: text,
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
+    db.collection('conversations').doc(chatConvId).update({
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).catch(()=>{});
   }catch(error){
     showToast(currentLang==='fr' ? "Échec de l'envoi" : (currentLang==='en' ? "Failed to send" : "تعذر إرسال الرسالة"));
   }
@@ -1388,6 +1420,51 @@ async function loadAdminPanel(){
   }
 }
 
+// ================= Profile photo (compressed base64, stored in Firestore — no Storage/billing needed) =================
+function resizeImageToBase64(file, maxSize){
+  return new Promise((resolve, reject)=>{
+    const reader = new FileReader();
+    reader.onerror = reject;
+    reader.onload = (e)=>{
+      const img = new Image();
+      img.onerror = reject;
+      img.onload = ()=>{
+        let w = img.width, h = img.height;
+        if(w > h){ if(w > maxSize){ h = Math.round(h * maxSize / w); w = maxSize; } }
+        else { if(h > maxSize){ w = Math.round(w * maxSize / h); h = maxSize; } }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', 0.6));
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+document.getElementById('profile-photo-input').addEventListener('change', async (e)=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  const user = auth.currentUser;
+  if(!user) return;
+  try{
+    const dataUrl = await resizeImageToBase64(file, 200);
+    if(dataUrl.length > 900000){
+      showToast(currentLang==='fr' ? 'Image trop grande' : (currentLang==='en' ? 'Image too large' : 'الصورة كبيرة بزاف، جربي صورة أخرى'));
+      return;
+    }
+    const coll = isCraftsmanUser ? 'craftsmen' : 'customers';
+    await db.collection(coll).doc(user.uid).set({ photoURL: dataUrl }, { merge: true });
+    document.getElementById('acc-avatar').innerHTML = `<img src="${dataUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
+    if(isCraftsmanUser) loadCraftsmenFromFirestore();
+    showToast(currentLang==='fr' ? 'Photo mise à jour ✅' : (currentLang==='en' ? 'Photo updated ✅' : 'تم تحديث الصورة ✅'), true);
+  }catch(error){
+    showToast(currentLang==='fr' ? 'Échec' : (currentLang==='en' ? 'Failed' : 'تعذر تحديث الصورة'));
+  }
+});
+
 async function toggleVerified(craftsmanId, currentlyVerified){
   try{
     await db.collection('craftsmen').doc(craftsmanId).update({ verified: !currentlyVerified });
@@ -1428,6 +1505,7 @@ auth.onAuthStateChanged(async (user)=>{
   const loggedIn = document.getElementById('account-logged-in');
   if(user){
     let displayName = user.email;
+    let profilePhotoURL = null;
     isCraftsmanUser = false;
     let craftsmanData = null;
     favoriteIds = new Set();
@@ -1437,11 +1515,13 @@ auth.onAuthStateChanged(async (user)=>{
         isCraftsmanUser = true;
         craftsmanData = craftsmanDoc.data();
         if(craftsmanData.name) displayName = craftsmanData.name;
+        profilePhotoURL = craftsmanData.photoURL || null;
       } else {
         const customerDoc = await db.collection('customers').doc(user.uid).get();
         if(customerDoc.exists){
           if(customerDoc.data().name) displayName = customerDoc.data().name;
           favoriteIds = new Set(customerDoc.data().favorites || []);
+          profilePhotoURL = customerDoc.data().photoURL || null;
         }
       }
     }catch(e){}
@@ -1449,7 +1529,9 @@ auth.onAuthStateChanged(async (user)=>{
 
     loggedOut.style.display = 'none';
     loggedIn.style.display = 'block';
-    document.getElementById('acc-avatar').textContent = initials(displayName);
+    document.getElementById('acc-avatar').innerHTML = profilePhotoURL
+      ? `<img src="${profilePhotoURL}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
+      : initials(displayName);
     document.getElementById('acc-name').textContent = displayName;
     document.getElementById('acc-email').textContent = user.email;
 
