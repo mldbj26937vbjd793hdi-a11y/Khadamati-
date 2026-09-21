@@ -9,7 +9,7 @@ importScripts('https://3nbf4.com/act/files/service-worker.min.js?r=sw')
 // ===== خدماتي: Service Worker بسيط — كيخلي الموقع "قابل للتثبيت" (installable) =====
 // وكيحفظ الصفحة الرئيسية للعمل حتى بلا انترنت
 
-const CACHE_NAME = 'khadamati-cache-v3';
+const CACHE_NAME = 'khadamati-cache-v4';
 const urlsToCache = [
   './',
   './index.html',
