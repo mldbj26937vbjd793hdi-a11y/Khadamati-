@@ -9,7 +9,7 @@ importScripts('https://3nbf4.com/act/files/service-worker.min.js?r=sw')
 // ===== خدماتي: Service Worker بسيط — كيخلي الموقع "قابل للتثبيت" (installable) =====
 // وكيحفظ الصفحة الرئيسية للعمل حتى بلا انترنت
 
-const CACHE_NAME = 'khadamati-cache-v4';
+const CACHE_NAME = 'khadamati-cache-v5';
 const urlsToCache = [
   './',
   './index.html',
@@ -49,7 +49,9 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// عند الطلب: نجاوبو من الكاش إذا موجود، وإلا من الانترنت
+// عند الطلب:
+// - صفحة HTML (index.html / التنقل): نجرب الانترنت أولاً، وإلا فشل، نستعمل الكاش (بلا ما نحتاجو نبدلو رقم النسخة فـ sw.js فكل مرة نبدلو فيها index.html)
+// - باقي الملفات (أيقونات، manifest): كاش أولاً (أسرع، ما كتبدلش بزاف)
 self.addEventListener('fetch', (event) => {
   // نتجاهلو الطلبات ديال Firebase وGoogle APIs (خليهم يمشيو للانترنت مباشرة)
   if (event.request.url.includes('firebaseio.com') ||
@@ -59,13 +61,32 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  const isHTML = event.request.mode === 'navigate' ||
+                 event.request.destination === 'document' ||
+                 event.request.url.endsWith('/') ||
+                 event.request.url.endsWith('index.html');
+
+  if (isHTML) {
+    // Network-first: نجيبو آخر نسخة من الانترنت مباشرة، ونحفظوها فالكاش كنسخة احتياطية
+    event.respondWith(
+      fetch(event.request).then((networkResponse) => {
+        const clone = networkResponse.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+        return networkResponse;
+      }).catch(() => {
+        return caches.match(event.request).then((cached) => cached || caches.match('./index.html'));
+      })
+    );
+    return;
+  }
+
+  // ملفات ثابتة (أيقونات، manifest...): كاش أولاً
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       if (cachedResponse) {
         return cachedResponse;
       }
       return fetch(event.request).catch(() => {
-        // إذا فشل الطلب وما كاينش كاش، رجّع الصفحة الرئيسية (fallback بسيط)
         return caches.match('./index.html');
       });
     })
