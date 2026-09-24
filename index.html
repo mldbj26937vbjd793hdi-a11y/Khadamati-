@@ -166,11 +166,14 @@ nav button .n-ic{display:block;font-size:19px;margin-bottom:2px;}
       <p data-i18n="tagline">خدمات منزلية وحرفيون موثوقون</p>
     </div>
   </div>
-  <select id="lang-select">
+  <div style="display:flex;align-items:center;gap:8px;">
+    <button id="header-notif-btn" class="ghost" style="width:auto;margin:0;padding:7px 10px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.3);color:#fff;position:relative;" aria-label="الإشعارات">🔔<span id="notif-badge" style="display:none;position:absolute;top:-4px;right:-4px;min-width:17px;height:17px;padding:0 4px;border-radius:9px;background:#fff;color:var(--rust);font-size:10px;font-weight:800;line-height:17px;text-align:center;"></span></button>
+    <select id="lang-select">
     <option value="ar">العربية</option>
     <option value="fr">Français</option>
     <option value="en">English</option>
-  </select>
+    </select>
+  </div>
 </header>
 
 <!-- ---------------- HOME ---------------- -->
@@ -395,6 +398,13 @@ nav button .n-ic{display:block;font-size:19px;margin-bottom:2px;}
   </div>
 </div>
 
+<div class="overlay" id="notifications-overlay">
+  <div class="modal">
+    <button class="modal-close" id="notifications-close">×</button>
+    <h3 data-i18n="notificationCenter">الإشعارات</h3>
+    <div id="notifications-list" style="margin-top:12px;"></div>
+  </div>
+</div>
 <div class="toast" id="toast"></div>
 
 <!-- ---------------- Privacy & Terms modal ---------------- -->
@@ -449,7 +459,7 @@ nav button .n-ic{display:block;font-size:19px;margin-bottom:2px;}
 <nav>
   <button class="nav-btn active" data-page="page-home"><span class="n-ic">🏠</span><span data-i18n="navHome">الرئيسية</span></button>
   <button class="nav-btn" data-page="page-orders"><span class="n-ic">📋</span><span data-i18n="navOrders">طلباتي</span></button>
-  <button class="nav-btn" data-page="page-messages"><span class="n-ic">💬</span><span data-i18n="navMessages">الرسائل</span></button>
+  <button class="nav-btn" data-page="page-messages"><span class="n-ic" style="position:relative;display:inline-block;">💬<span id="msg-badge" style="display:none;position:absolute;top:-5px;right:-10px;min-width:17px;height:17px;padding:0 4px;border-radius:9px;background:var(--rust);color:#fff;font-size:10px;font-weight:800;line-height:17px;text-align:center;"></span></span><span data-i18n="navMessages">الرسائل</span></button>
   <button class="nav-btn" data-page="page-account"><span class="n-ic">👤</span><span data-i18n="navAccount">الحساب</span></button>
 </nav>
 
@@ -458,6 +468,7 @@ nav button .n-ic{display:block;font-size:19px;margin-bottom:2px;}
 <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-analytics-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-messaging-compat.js"></script>
 
 <script>
 // ================= Firebase init =================
@@ -532,6 +543,13 @@ const translations = {
   send:{ar:"إرسال",fr:"Envoyer",en:"Send"},
   noConversations:{ar:"لا توجد محادثات بعد — احجزي خدمة أولًا",fr:"Aucune conversation — réservez un service d'abord",en:"No conversations yet — book a service first"},
   newMessageNotif:{ar:"رسالة جديدة",fr:"Nouveau message",en:"New message"},
+  notificationCenter:{ar:"الإشعارات",fr:"Notifications",en:"Notifications"},
+  noNotifications:{ar:"لا توجد إشعارات جديدة",fr:"Aucune nouvelle notification",en:"No new notifications"},
+  enablePush:{ar:"🔔 تفعيل إشعارات الرسائل والطلبات",fr:"🔔 Activer les notifications des messages et commandes",en:"🔔 Enable message and order notifications"},
+  pushEnabled:{ar:"تم تفعيل إشعارات الرسائل والطلبات ✅",fr:"Notifications des messages et commandes activées ✅",en:"Message and order notifications enabled ✅"},
+  messageFrom:{ar:"رسالة من",fr:"Message de",en:"Message from"},
+  newOrderTitle:{ar:"طلب خدمة جديد",fr:"Nouvelle commande",en:"New service order"},
+  orderUpdatedTitle:{ar:"تحديث الطلب",fr:"Mise à jour de la commande",en:"Order updated"},
   logout:{ar:"تسجيل الخروج",fr:"Déconnexion",en:"Log out"},
   deleteAccount:{ar:"حذف الحساب نهائيًا",fr:"Supprimer le compte",en:"Delete account permanently"},
   bookService:{ar:"حجز خدمة",fr:"Réserver un service",en:"Book a service"},
@@ -631,7 +649,7 @@ function showPage(id){
   document.getElementById(id).classList.add('active');
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active', b.dataset.page===id));
   if(id === 'page-orders') loadOrders();
-  if(id === 'page-messages') loadConversations();
+  if(id === 'page-messages'){ unreadMessages = 0; setBadge('msg-badge', 0); loadConversations(); }
 }
 document.querySelectorAll('.nav-btn').forEach(btn=>{
   btn.addEventListener('click', ()=> showPage(btn.dataset.page));
@@ -1170,27 +1188,6 @@ document.getElementById('acc-delete').addEventListener('click', async ()=>{
   }
 });
 
-document.getElementById('acc-notif-btn').addEventListener('click', async ()=>{
-  if(!('Notification' in window)){
-    showToast(currentLang==='fr'?"Non pris en charge sur cet appareil":(currentLang==='en'?"Not supported on this device":"غير مدعوم على هذا الجهاز"));
-    return;
-  }
-  const perm = await Notification.requestPermission();
-  if(perm === 'granted'){
-    showToast(t('notifEnabled'), true);
-    startNotificationListener();
-  } else {
-    showToast(t('notifDenied'));
-  }
-});
-
-function showLocalNotification(title, body){
-  if('Notification' in window && Notification.permission === 'granted'){
-    try{
-      new Notification(title, { body, icon: './icon-192.png' });
-    }catch(e){ /* some browsers require SW-based notifications; ignore silently */ }
-  }
-}
 
 // ================= Report craftsman =================
 const reportOverlay = document.getElementById('report-overlay');
@@ -1365,45 +1362,236 @@ document.getElementById('chat-input').addEventListener('keydown', e=>{
   if(e.key === 'Enter') sendChatMessage();
 });
 
-// ================= Real-time listener (no server/billing needed) =================
+// ================= Notifications (orders + messages) =================
 let notifUnsubscribe = null;
+let messageNotifUnsubscribe = null;
 let notifFirstLoad = true;
+let messageNotifFirstLoad = true;
 let knownBookingStatuses = {};
+let knownMessageIds = new Set();
+let unreadNotifications = 0;
+let unreadMessages = 0;
+let notificationItems = [];
 
-function startNotificationListener(){
+function escapeHtml(value){
+  return String(value || '').replace(/[&<>"']/g, ch => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'
+  }[ch]));
+}
+
+function setBadge(id, count){
+  const el = document.getElementById(id);
+  if(!el) return;
+  if(count > 0){
+    el.textContent = count > 99 ? '99+' : String(count);
+    el.style.display = 'block';
+  }else{
+    el.textContent = '';
+    el.style.display = 'none';
+  }
+}
+
+function addNotificationItem(title, body, type){
+  notificationItems.unshift({
+    title: title || t('appName'),
+    body: body || '',
+    type: type || 'general',
+    time: new Date()
+  });
+  notificationItems = notificationItems.slice(0, 30);
+  unreadNotifications++;
+  setBadge('notif-badge', unreadNotifications);
+}
+
+function renderNotificationCenter(){
+  const list = document.getElementById('notifications-list');
+  if(!list) return;
+  if(!notificationItems.length){
+    list.innerHTML = `<div class="muted" style="text-align:center;padding:24px;">${t('noNotifications')}</div>`;
+    return;
+  }
+  list.innerHTML = notificationItems.map(n => `
+    <div style="background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:8px;">
+      <b>${escapeHtml(n.title)}</b>
+      <div class="muted" style="margin-top:4px;">${escapeHtml(n.body)}</div>
+    </div>
+  `).join('');
+}
+
+function openNotificationCenter(){
+  unreadNotifications = 0;
+  setBadge('notif-badge', 0);
+  renderNotificationCenter();
+  document.getElementById('notifications-overlay').classList.add('show');
+}
+
+function showLocalNotification(title, body){
+  addNotificationItem(title, body, 'push');
+  if('Notification' in window && Notification.permission === 'granted'){
+    try{
+      // Use the active service worker when available; this is more reliable than new Notification()
+      // on mobile browsers.
+      navigator.serviceWorker?.ready.then(reg => {
+        reg.showNotification(title, {
+          body: body,
+          icon: './icon-192.png',
+          badge: './icon-192.png',
+          tag: 'khadamati-' + Date.now(),
+          data: { url: './index.html' }
+        });
+      }).catch(()=>{
+        try{ new Notification(title, {body, icon:'./icon-192.png'}); }catch(e){}
+      });
+    }catch(e){}
+  }
+}
+
+async function requestNotificationPermission(){
+  if(!('Notification' in window)){
+    showToast(currentLang==='fr' ? "Non pris en charge sur cet appareil" :
+      (currentLang==='en' ? "Notifications are not supported on this device" : "الإشعارات غير مدعومة على هذا الجهاز"));
+    return false;
+  }
+  try{
+    const perm = await Notification.requestPermission();
+    if(perm === 'granted'){
+      showToast(t('pushEnabled'), true);
+      startNotificationListeners();
+      return true;
+    }
+    showToast(t('notifDenied'));
+  }catch(e){
+    showToast(t('notifDenied'));
+  }
+  return false;
+}
+
+function startNotificationListeners(){
   if(!('Notification' in window) || Notification.permission !== 'granted') return;
-  if(notifUnsubscribe) notifUnsubscribe();
   const user = auth.currentUser;
   if(!user) return;
 
-  notifFirstLoad = true;
-  knownBookingStatuses = {};
+  if(notifUnsubscribe) notifUnsubscribe();
+  if(messageNotifUnsubscribe) messageNotifUnsubscribe();
 
-  const field = isCraftsmanUser ? 'craftsmanId' : 'customerId';
-  notifUnsubscribe = db.collection('bookings').where(field, '==', user.uid)
+  notifFirstLoad = true;
+  messageNotifFirstLoad = true;
+  knownBookingStatuses = {};
+  knownMessageIds = new Set();
+
+  const bookingField = isCraftsmanUser ? 'craftsmanId' : 'customerId';
+
+  notifUnsubscribe = db.collection('bookings').where(bookingField, '==', user.uid)
     .onSnapshot(snapshot=>{
       snapshot.docChanges().forEach(change=>{
         const d = change.doc.data();
+
         if(notifFirstLoad){
           knownBookingStatuses[change.doc.id] = d.status;
           return;
         }
+
         if(change.type === 'added' && isCraftsmanUser){
-          showLocalNotification(t('appName'), t('newOrderNotif'));
+          const body = `${d.customerEmail || ''} — ${d.address || ''}`;
+          showLocalNotification(t('newOrderTitle'), body || t('newOrderNotif'));
         }
+
         if(change.type === 'modified'){
           const prevStatus = knownBookingStatuses[change.doc.id];
-          if(prevStatus !== d.status && !isCraftsmanUser){
-            showLocalNotification(t('appName'), t('statusChangedNotif') + ': ' + (statusLabels[currentLang][d.status]||d.status));
+          if(prevStatus !== d.status){
+            const statusText = statusLabels[currentLang]?.[d.status] || d.status || '';
+            if(isCraftsmanUser){
+              showLocalNotification(t('orderUpdatedTitle'), statusText);
+            }else{
+              showLocalNotification(t('orderUpdatedTitle'),
+                t('statusChangedNotif') + ': ' + statusText);
+            }
           }
           knownBookingStatuses[change.doc.id] = d.status;
         }
       });
       notifFirstLoad = false;
-    }, error=>{ console.log('تعذر تفعيل الاستماع المباشر:', error); });
+    }, error=>console.log('تعذر الاستماع للطلبات:', error));
+
+  // Watch all conversations in which the current user participates, then watch their messages.
+  messageNotifUnsubscribe = db.collection('conversations')
+    .where('participants', 'array-contains', user.uid)
+    .onSnapshot(convSnap=>{
+      convSnap.docs.forEach(convDoc=>{
+        const convId = convDoc.id;
+        const cd = convDoc.data();
+        const otherName = user.uid === cd.craftsmanId
+          ? (cd.customerName || cd.customerEmail || '')
+          : (cd.craftsmanName || '');
+
+        db.collection('conversations').doc(convId).collection('messages')
+          .orderBy('createdAt', 'desc').limit(20)
+          .onSnapshot(msgSnap=>{
+            msgSnap.docChanges().forEach(change=>{
+              if(change.type !== 'added') return;
+              const m = change.doc.data();
+              if(!m || m.senderId === user.uid) return;
+
+              const uniqueId = convId + '_' + change.doc.id;
+              if(knownMessageIds.has(uniqueId)) return;
+
+              // On the initial snapshot, remember existing messages but don't notify for old messages.
+              if(messageNotifFirstLoad){
+                knownMessageIds.add(uniqueId);
+                return;
+              }
+
+              knownMessageIds.add(uniqueId);
+              unreadMessages++;
+              setBadge('msg-badge', unreadMessages);
+
+              const body = (m.text || '').trim() || t('newMessageNotif');
+              showLocalNotification(
+                otherName ? `${t('messageFrom')} ${otherName}` : t('newMessageNotif'),
+                body
+              );
+            });
+          }, ()=>{});
+      });
+      messageNotifFirstLoad = false;
+    }, error=>console.log('تعذر الاستماع للمحادثات:', error));
 }
 
+function stopNotificationListeners(){
+  stopNotificationListeners();
+  if(messageNotifUnsubscribe){ messageNotifUnsubscribe(); messageNotifUnsubscribe = null; }
+  knownBookingStatuses = {};
+  knownMessageIds = new Set();
+}
+
+document.getElementById('acc-notif-btn').addEventListener('click', requestNotificationPermission);
+document.getElementById('header-notif-btn').addEventListener('click', requestNotificationPermission);
+document.getElementById('header-notif-btn').addEventListener('contextmenu', e=>e.preventDefault());
+
+document.getElementById('header-notif-btn').addEventListener('click', (e)=>{
+  // First tap enables notifications; once enabled, the same button opens the notification center.
+  if('Notification' in window && Notification.permission === 'granted'){
+    e.stopImmediatePropagation();
+    openNotificationCenter();
+  }
+});
+
+document.getElementById('notifications-close').addEventListener('click', ()=>{
+  document.getElementById('notifications-overlay').classList.remove('show');
+});
+document.getElementById('notifications-overlay').addEventListener('click', e=>{
+  if(e.target === document.getElementById('notifications-overlay')){
+    document.getElementById('notifications-overlay').classList.remove('show');
+  }
+});
+
+document.querySelector('.nav-btn[data-page="page-messages"]').addEventListener('click', ()=>{
+  unreadMessages = 0;
+  setBadge('msg-badge', 0);
+});
+
 // ================= Auth state =================
+
 document.getElementById('resend-verify-btn').addEventListener('click', async ()=>{
   const user = auth.currentUser;
   if(!user) return;
@@ -1621,6 +1809,11 @@ auth.onAuthStateChanged(async (user)=>{
       : initials(displayName);
     document.getElementById('acc-name').textContent = displayName;
     document.getElementById('acc-email').textContent = user.email;
+    if('Notification' in window && Notification.permission === 'granted'){
+      document.getElementById('acc-notif-btn').textContent = t('pushEnabled');
+    } else {
+      document.getElementById('acc-notif-btn').textContent = t('enablePush');
+    }
 
     const verifyBanner = document.getElementById('verify-banner');
     verifyBanner.style.display = (user.emailVerified === false) ? 'block' : 'none';
@@ -1644,11 +1837,11 @@ auth.onAuthStateChanged(async (user)=>{
     loggedOut.style.display = 'block';
     loggedIn.style.display = 'none';
     document.getElementById('admin-btn').style.display = 'none';
-    if(notifUnsubscribe){ notifUnsubscribe(); notifUnsubscribe = null; }
+    stopNotificationListeners();
     renderCraftsmen();
   }
   if('Notification' in window && Notification.permission === 'granted' && user){
-    startNotificationListener();
+    startNotificationListeners();
   }
   if(document.getElementById('page-orders').classList.contains('active')) loadOrders();
   if(document.getElementById('page-messages').classList.contains('active') && user) loadConversations();
@@ -1676,7 +1869,7 @@ updateOnlineStatus();
 
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./sw.js').then(reg=>{
+    navigator.serviceWorker.register('./sw.js?v=notifications-2').then(reg=>{
       reg.addEventListener('updatefound', ()=>{
         const newWorker = reg.installing;
         if(!newWorker) return;
