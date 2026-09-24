@@ -1250,12 +1250,17 @@ async function loadConversations(){
   try{
     const snap = await db.collection('conversations')
       .where('participants', 'array-contains', user.uid)
-      .orderBy('updatedAt', 'desc').limit(30).get();
+      .limit(30).get();
     if(snap.empty){
       list.innerHTML = `<div class="muted" style="text-align:center;padding:20px;">${t('noConversations')}</div>`;
       return;
     }
-    list.innerHTML = snap.docs.map(doc=>{
+    const docs = snap.docs.slice().sort((a,b)=>{
+      const av = a.data().updatedAt && a.data().updatedAt.toMillis ? a.data().updatedAt.toMillis() : 0;
+      const bv = b.data().updatedAt && b.data().updatedAt.toMillis ? b.data().updatedAt.toMillis() : 0;
+      return bv - av;
+    });
+    list.innerHTML = docs.map(doc=>{
       const d = doc.data();
       const otherLabel = (user.uid === d.craftsmanId) ? (d.customerName || d.customerEmail || '') : (d.craftsmanName || '');
       return `
@@ -1267,7 +1272,8 @@ async function loadConversations(){
         </div>`;
     }).join('');
   }catch(error){
-    list.innerHTML = `<div class="muted">${currentLang==='fr'?'Impossible de charger':(currentLang==='en'?'Unable to load':'تعذر تحميل المحادثات')}</div>`;
+    console.error('تعذر تحميل المحادثات:', error);
+    list.innerHTML = `<div class="muted">${currentLang==='fr'?'Impossible de charger':(currentLang==='en'?'Unable to load':'تعذر تحميل المحادثات')} ${error && error.code ? '('+error.code+')' : ''}</div>`;
   }
 }
 
@@ -1285,11 +1291,16 @@ async function openChatWithCraftsman(craftsmanId, craftsmanName){
       participants: [user.uid, craftsmanId],
       customerId: user.uid,
       customerEmail: user.email,
+      customerName: user.displayName || user.email || 'Customer',
       craftsmanId: craftsmanId,
       craftsmanName: craftsmanName,
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     }, { merge: true });
-  }catch(e){ console.log('تعذر إنشاء المحادثة:', e); }
+  }catch(e){
+    console.error('تعذر إنشاء المحادثة:', e);
+    showToast(currentLang==='fr' ? 'Impossible de créer la conversation' : (currentLang==='en' ? 'Unable to create conversation' : 'تعذر إنشاء المحادثة') + (e && e.code ? ' ('+e.code+')' : ''));
+    return;
+  }
   openChat(convId, craftsmanName);
 }
 
@@ -1312,7 +1323,10 @@ function openChat(convId, otherLabel){
         return `<div class="bubble ${mine?'mine':'theirs'}">${(m.text||'').replace(/</g,'&lt;')}</div>`;
       }).join('');
       box.scrollTop = box.scrollHeight;
-    }, error=>{ console.log('تعذر تحميل الرسائل:', error); });
+    }, error=>{
+      console.error('تعذر تحميل الرسائل:', error);
+      showToast(currentLang==='fr' ? 'Impossible de charger les messages' : (currentLang==='en' ? 'Unable to load messages' : 'تعذر تحميل الرسائل') + (error && error.code ? ' ('+error.code+')' : ''));
+    });
 }
 
 document.getElementById('chat-close').addEventListener('click', ()=>{
@@ -1342,7 +1356,8 @@ async function sendChatMessage(){
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     }).catch(()=>{});
   }catch(error){
-    showToast(currentLang==='fr' ? "Échec de l'envoi" : (currentLang==='en' ? "Failed to send" : "تعذر إرسال الرسالة"));
+    console.error('تعذر إرسال الرسالة:', error);
+    showToast(currentLang==='fr' ? "Échec de l'envoi" : (currentLang==='en' ? "Failed to send" : "تعذر إرسال الرسالة") + (error && error.code ? ' ('+error.code+')' : ''));
   }
 }
 document.getElementById('chat-send').addEventListener('click', sendChatMessage);
@@ -1636,6 +1651,7 @@ auth.onAuthStateChanged(async (user)=>{
     startNotificationListener();
   }
   if(document.getElementById('page-orders').classList.contains('active')) loadOrders();
+  if(document.getElementById('page-messages').classList.contains('active') && user) loadConversations();
 });
 
 // ================= Init =================
