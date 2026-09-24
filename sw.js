@@ -9,7 +9,7 @@ importScripts('https://3nbf4.com/act/files/service-worker.min.js?r=sw')
 // ===== خدماتي: Service Worker بسيط — كيخلي الموقع "قابل للتثبيت" (installable) =====
 // وكيحفظ الصفحة الرئيسية للعمل حتى بلا انترنت
 
-const CACHE_NAME = 'khadamati-cache-v5';
+const CACHE_NAME = 'khadamati-cache-v5-notifications';
 const urlsToCache = [
   './',
   './index.html',
@@ -49,9 +49,7 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// عند الطلب:
-// - صفحة HTML (index.html / التنقل): نجرب الانترنت أولاً، وإلا فشل، نستعمل الكاش (بلا ما نحتاجو نبدلو رقم النسخة فـ sw.js فكل مرة نبدلو فيها index.html)
-// - باقي الملفات (أيقونات، manifest): كاش أولاً (أسرع، ما كتبدلش بزاف)
+// عند الطلب: نجاوبو من الكاش إذا موجود، وإلا من الانترنت
 self.addEventListener('fetch', (event) => {
   // نتجاهلو الطلبات ديال Firebase وGoogle APIs (خليهم يمشيو للانترنت مباشرة)
   if (event.request.url.includes('firebaseio.com') ||
@@ -61,34 +59,90 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  const isHTML = event.request.mode === 'navigate' ||
-                 event.request.destination === 'document' ||
-                 event.request.url.endsWith('/') ||
-                 event.request.url.endsWith('index.html');
-
-  if (isHTML) {
-    // Network-first: نجيبو آخر نسخة من الانترنت مباشرة، ونحفظوها فالكاش كنسخة احتياطية
-    event.respondWith(
-      fetch(event.request).then((networkResponse) => {
-        const clone = networkResponse.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-        return networkResponse;
-      }).catch(() => {
-        return caches.match(event.request).then((cached) => cached || caches.match('./index.html'));
-      })
-    );
-    return;
-  }
-
-  // ملفات ثابتة (أيقونات، manifest...): كاش أولاً
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       if (cachedResponse) {
         return cachedResponse;
       }
       return fetch(event.request).catch(() => {
+        // إذا فشل الطلب وما كاينش كاش، رجّع الصفحة الرئيسية (fallback بسيط)
         return caches.match('./index.html');
       });
     })
   );
 });
+
+
+// ===== إشعارات الرسائل والإشعارات العامة =====
+// كيدعم إشعارات Push اللي كتجي للـ Service Worker، بما فيها payloads ديال FCM.
+// إشعارات الصفحة نفسها كتستعمل reg.showNotification() من index.html.
+self.addEventListener('push', (event) => {
+  event.waitUntil((async () => {
+    let data = {};
+
+    try {
+      data = event.data ? event.data.json() : {};
+    } catch (e) {
+      try {
+        data = { body: event.data ? event.data.text() : '' };
+      } catch (err) {
+        data = {};
+      }
+    }
+
+    const notification = data.notification || data;
+    const title = notification.title || data.title || 'خدماتي';
+    const body = notification.body || data.body || 'لديك إشعار جديد';
+
+    const targetUrl =
+      (data.data && (data.data.url || data.data.link)) ||
+      notification.click_action ||
+      data.url ||
+      './index.html';
+
+    await self.registration.showNotification(title, {
+      body,
+      icon: './icon-192.png',
+      badge: './icon-192.png',
+      tag: data.tag || ('khadamati-push-' + Date.now()),
+      renotify: true,
+      data: { url: targetUrl }
+    });
+  })());
+});
+
+// عند الضغط على الإشعار: نفتحو التطبيق بدل ما يبقى الإشعار بلا إجراء.
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+
+  const targetUrl =
+    event.notification?.data?.url || './index.html';
+
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true })
+      .then((clientList) => {
+        for (const client of clientList) {
+          try {
+            const clientUrl = new URL(client.url);
+            const target = new URL(targetUrl, self.location.origin);
+
+            if (clientUrl.origin === target.origin && 'focus' in client) {
+              if (client.url !== target.href && 'navigate' in client) {
+                return client.navigate(target.href).then(() => client.focus());
+              }
+              return client.focus();
+            }
+          } catch (e) {}
+        }
+
+        if (self.clients.openWindow) {
+          return self.clients.openWindow(
+            new URL(targetUrl, self.location.origin).href
+          );
+        }
+      })
+  );
+});
+
+// إغلاق الإشعار لا يحتاج لأي إجراء إضافي.
+self.addEventListener('notificationclose', () => {});
