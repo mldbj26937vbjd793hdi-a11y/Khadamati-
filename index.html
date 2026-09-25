@@ -1346,7 +1346,15 @@ function openChat(convId, otherLabel){
   chatConvId = convId;
   document.getElementById('chat-title').textContent = otherLabel;
   const currentUserForRead = auth.currentUser;
-  if(currentUserForRead){ db.collection('conversations').doc(convId).set({ ['unreadCountBy.'+currentUserForRead.uid]: 0 }, {merge:true}).catch(()=>{}); }
+  if(currentUserForRead){
+    db.collection('conversations').doc(convId).set(
+      { ['unreadCountBy.'+currentUserForRead.uid]: 0 },
+      {merge:true}
+    ).then(()=>{
+      // Refresh the conversation list so the unread badge disappears immediately.
+      if(document.getElementById('page-messages').classList.contains('active')) loadConversations();
+    }).catch(()=>{});
+  }
   document.getElementById('chat-messages').innerHTML = '';
   document.getElementById('chat-input').value = '';
   chatOverlay.classList.add('show');
@@ -1372,11 +1380,13 @@ function openChat(convId, otherLabel){
 document.getElementById('chat-close').addEventListener('click', ()=>{
   chatOverlay.classList.remove('show');
   if(chatUnsubscribe){ chatUnsubscribe(); chatUnsubscribe = null; }
+  if(auth.currentUser && document.getElementById('page-messages').classList.contains('active')) loadConversations();
 });
 chatOverlay.addEventListener('click', e=>{
   if(e.target===chatOverlay){
     chatOverlay.classList.remove('show');
     if(chatUnsubscribe){ chatUnsubscribe(); chatUnsubscribe = null; }
+    if(auth.currentUser && document.getElementById('page-messages').classList.contains('active')) loadConversations();
   }
 });
 
@@ -1591,6 +1601,17 @@ function startNotificationListeners(){
               }
 
               knownMessageIds.add(uniqueId);
+
+              // If this conversation is currently open, the message is already being read.
+              // Do not show an unread badge or notification for it.
+              if(chatConvId === convId && chatOverlay.classList.contains('show')){
+                db.collection('conversations').doc(convId).set(
+                  { ['unreadCountBy.'+user.uid]: 0 },
+                  {merge:true}
+                ).catch(()=>{});
+                return;
+              }
+
               unreadMessages++;
               setBadge('msg-badge', unreadMessages);
 
