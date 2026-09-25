@@ -108,6 +108,10 @@ nav button .n-ic{display:block;font-size:19px;margin-bottom:2px;}
 .conv-item .conv-body{flex:1;min-width:0;}
 .conv-item .conv-name{font-weight:700;font-size:14.5px;}
 .conv-item .conv-last{color:var(--ink-soft);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.conv-item .conv-meta{display:flex;align-items:center;gap:6px;margin-top:3px;}
+.conv-item .conv-time{color:var(--ink-soft);font-size:11px;white-space:nowrap;}
+.conv-unread{min-width:19px;height:19px;padding:0 5px;border-radius:10px;background:var(--rust);color:#fff;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;}
+.chat-subtitle{font-size:11.5px;color:var(--ink-soft);margin-top:3px;}
 
 .chat-modal{display:flex;flex-direction:column;height:78vh;max-height:640px;padding:0;}
 .chat-header{padding:16px 50px 12px 16px;border-bottom:1px solid var(--line);flex-shrink:0;}
@@ -447,12 +451,26 @@ nav button .n-ic{display:block;font-size:19px;margin-bottom:2px;}
 <div class="overlay" id="chat-overlay">
   <div class="modal chat-modal">
     <button class="modal-close" id="chat-close">×</button>
-    <div class="chat-header"><h3 id="chat-title"></h3></div>
+    <div class="chat-header"><h3 id="chat-title"></h3><div class="chat-subtitle" id="chat-subtitle">محادثة</div></div>
     <div class="chat-messages" id="chat-messages"></div>
     <div class="chat-input-row">
       <input type="text" id="chat-input" data-i18n-ph="typeMessage" placeholder="اكتب رسالة...">
       <button id="chat-send" data-i18n="send">إرسال</button>
     </div>
+  </div>
+</div>
+
+<!-- Customer name required after login when no name is saved -->
+<div class="overlay" id="customer-name-overlay">
+  <div class="modal" style="max-width:430px;text-align:center;">
+    <h3>أدخل اسمك</h3>
+    <p class="muted">اكتب اسمك حتى يظهر بشكل صحيح في الرسائل والإشعارات.</p>
+    <div class="field" style="text-align:right;">
+      <label>الاسم الكامل</label>
+      <input type="text" id="customer-required-name" maxlength="60" placeholder="مثلاً: محمد العلوي">
+    </div>
+    <div class="field-error" id="customer-name-error"></div>
+    <button id="save-customer-name">حفظ الاسم</button>
   </div>
 </div>
 
@@ -486,6 +504,42 @@ firebase.initializeApp(firebaseConfig);
 try{ firebase.analytics(); }catch(e){ /* Analytics unavailable, ignore silently */ }
 const auth = firebase.auth();
 const db = firebase.firestore();
+
+// ================= Firebase Cloud Messaging (FCM) =================
+// يسجل جهاز المستخدم لاستقبال Push Notifications.
+const FCM_VAPID_KEY = "BOjElfXTjN6QgFyf7YFHe_kM6s-lvZzxhz11l9gQTTjnp2XtY981Ts8kwHKMAhI9Ixw3uzGdF7FclgoPSfm0lkg";
+let fcmMessaging = null;
+try { fcmMessaging = firebase.messaging(); } catch(e) { console.log("FCM غير متاح:", e); }
+
+async function registerForPushNotifications(){
+  const user = auth.currentUser;
+  if(!user || !fcmMessaging || !("serviceWorker" in navigator) || !("Notification" in window)) return false;
+  try{
+    const permission = Notification.permission === "granted" ? "granted" : await Notification.requestPermission();
+    if(permission !== "granted") return false;
+    const reg = await navigator.serviceWorker.ready;
+    const token = await fcmMessaging.getToken({vapidKey: FCM_VAPID_KEY, serviceWorkerRegistration: reg});
+    if(!token) return false;
+    await db.collection("users").doc(user.uid).set({
+      fcmTokens: firebase.firestore.FieldValue.arrayUnion(token),
+      fcmTokenUpdatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }, {merge:true});
+    return true;
+  }catch(e){
+    console.log("تعذر تسجيل FCM:", e);
+    return false;
+  }
+}
+
+if(fcmMessaging){
+  fcmMessaging.onMessage(payload=>{
+    const n = payload.notification || {};
+    const d = payload.data || {};
+    const title = n.title || d.title || t("newMessageNotif");
+    const body = n.body || d.body || "";
+    if(title || body) showLocalNotification(title, body);
+  });
+}
 
 // ================= i18n =================
 const translations = {
@@ -1137,6 +1191,7 @@ document.getElementById('reg-submit').addEventListener('click', async ()=>{
   try{
     const cred = await auth.createUserWithEmailAndPassword(email, password);
     const uid = cred.user.uid;
+    await cred.user.updateProfile({ displayName: name }).catch(()=>{});
     if(regRole === 'craftsman'){
       await db.collection('craftsmen').doc(uid).set({
         name, email, cat, city, price, rating: null, ratingCount: 0, jobs: 0,
@@ -1239,38 +1294,24 @@ function convIdFor(customerId, craftsmanId){ return customerId + '_' + craftsman
 async function loadConversations(){
   const list = document.getElementById('conversations-list');
   const user = auth.currentUser;
-  if(!user){
-    list.innerHTML = `<div class="muted" style="text-align:center;padding:20px;">${currentLang==='fr'?'Veuillez vous connecter':(currentLang==='en'?'Please log in':'يرجى تسجيل الدخول')}</div>`;
-    return;
-  }
+  if(!user){ list.innerHTML = '<div class="muted" style="text-align:center;padding:20px;">يرجى تسجيل الدخول</div>'; return; }
   list.innerHTML = skeletonCards(3);
   try{
-    const snap = await db.collection('conversations')
-      .where('participants', 'array-contains', user.uid)
-      .limit(30).get();
-    if(snap.empty){
-      list.innerHTML = `<div class="muted" style="text-align:center;padding:20px;">${t('noConversations')}</div>`;
-      return;
-    }
-    const docs = snap.docs.slice().sort((a,b)=>{
-      const av = a.data().updatedAt && a.data().updatedAt.toMillis ? a.data().updatedAt.toMillis() : 0;
-      const bv = b.data().updatedAt && b.data().updatedAt.toMillis ? b.data().updatedAt.toMillis() : 0;
-      return bv - av;
-    });
-    list.innerHTML = docs.map(doc=>{
-      const d = doc.data();
-      const otherLabel = (user.uid === d.craftsmanId) ? (d.customerName || d.customerEmail || '') : (d.craftsmanName || '');
-      return `
-        <div class="conv-item" onclick="openChat('${doc.id}','${(otherLabel||'').replace(/'/g,"\\'")}')">
-          <div class="avatar">${initials(otherLabel || '؟')}</div>
-          <div class="conv-body">
-            <div class="conv-name">${otherLabel}</div>
-          </div>
-        </div>`;
+    const snap = await db.collection('conversations').where('participants','array-contains',user.uid).limit(50).get();
+    if(snap.empty){ list.innerHTML = `<div class="muted" style="text-align:center;padding:20px;">${t('noConversations')}</div>`; return; }
+    const docs=snap.docs.slice().sort((a,b)=>{ const av=a.data().updatedAt?.toMillis?a.data().updatedAt.toMillis():0; const bv=b.data().updatedAt?.toMillis?b.data().updatedAt.toMillis():0; return bv-av; });
+    list.innerHTML=docs.map(doc=>{
+      const d=doc.data();
+      const otherLabel=user.uid===d.craftsmanId?(d.customerName||d.customerEmail||'Customer'):(d.craftsmanName||'');
+      const lastText=d.lastMessage||'';
+      const unread=Number((d.unreadCountBy||{})[user.uid]||0);
+      const time=d.lastMessageAt?.toDate?d.lastMessageAt.toDate().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):'';
+      const safeName=escapeHtml(otherLabel).replace(/'/g,"\'");
+      return `<div class="conv-item" onclick="openChat('${doc.id}','${safeName}')"><div class="avatar">${initials(otherLabel||'؟')}</div><div class="conv-body"><div style="display:flex;align-items:center;justify-content:space-between;gap:8px;"><div class="conv-name">${escapeHtml(otherLabel)}</div><span class="conv-time">${time}</span></div><div class="conv-meta"><div class="conv-last">${escapeHtml(lastText||'لا توجد رسائل بعد')}</div>${unread?`<span class="conv-unread">${unread>99?'99+':unread}</span>`:''}</div></div></div>`;
     }).join('');
   }catch(error){
-    console.error('تعذر تحميل المحادثات:', error);
-    list.innerHTML = `<div class="muted">${currentLang==='fr'?'Impossible de charger':(currentLang==='en'?'Unable to load':'تعذر تحميل المحادثات')} ${error && error.code ? '('+error.code+')' : ''}</div>`;
+    console.error('تعذر تحميل المحادثات:',error);
+    list.innerHTML=`<div class="muted">تعذر تحميل المحادثات ${error&&error.code?'('+error.code+')':''}</div>`;
   }
 }
 
@@ -1288,7 +1329,7 @@ async function openChatWithCraftsman(craftsmanId, craftsmanName){
       participants: [user.uid, craftsmanId],
       customerId: user.uid,
       customerEmail: user.email,
-      customerName: user.displayName || user.email || 'Customer',
+      customerName: (await getCurrentUserDisplayName()) || user.email || 'Customer',
       craftsmanId: craftsmanId,
       craftsmanName: craftsmanName,
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -1304,6 +1345,8 @@ async function openChatWithCraftsman(craftsmanId, craftsmanName){
 function openChat(convId, otherLabel){
   chatConvId = convId;
   document.getElementById('chat-title').textContent = otherLabel;
+  const currentUserForRead = auth.currentUser;
+  if(currentUserForRead){ db.collection('conversations').doc(convId).set({ ['unreadCountBy.'+currentUserForRead.uid]: 0 }, {merge:true}).catch(()=>{}); }
   document.getElementById('chat-messages').innerHTML = '';
   document.getElementById('chat-input').value = '';
   chatOverlay.classList.add('show');
@@ -1344,14 +1387,15 @@ async function sendChatMessage(){
   if(!text || !user || !chatConvId) return;
   input.value = '';
   try{
-    await db.collection('conversations').doc(chatConvId).collection('messages').add({
-      senderId: user.uid,
-      text: text,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
-    db.collection('conversations').doc(chatConvId).update({
-      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-    }).catch(()=>{});
+    const senderName = (await getCurrentUserDisplayName()) || user.email || 'User';
+    const convRef = db.collection('conversations').doc(chatConvId);
+    const convSnap = await convRef.get();
+    const conv = convSnap.exists ? convSnap.data() : {};
+    const recipientId = (conv.participants || []).find(id => id !== user.uid) || null;
+    await convRef.collection('messages').add({senderId:user.uid,senderName,text,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+    const updateData = {lastMessage:text,lastMessageSenderId:user.uid,lastMessageSenderName:senderName,lastMessageAt:firebase.firestore.FieldValue.serverTimestamp(),updatedAt:firebase.firestore.FieldValue.serverTimestamp()};
+    if(recipientId) updateData['unreadCountBy.'+recipientId]=firebase.firestore.FieldValue.increment(1);
+    await convRef.set(updateData,{merge:true});
   }catch(error){
     console.error('تعذر إرسال الرسالة:', error);
     showToast(currentLang==='fr' ? "Échec de l'envoi" : (currentLang==='en' ? "Failed to send" : "تعذر إرسال الرسالة") + (error && error.code ? ' ('+error.code+')' : ''));
@@ -1365,6 +1409,7 @@ document.getElementById('chat-input').addEventListener('keydown', e=>{
 // ================= Notifications (orders + messages) =================
 let notifUnsubscribe = null;
 let messageNotifUnsubscribe = null;
+let messageSubUnsubscribes = new Map();
 let notifFirstLoad = true;
 let messageNotifFirstLoad = true;
 let knownBookingStatuses = {};
@@ -1457,6 +1502,7 @@ async function requestNotificationPermission(){
     if(perm === 'granted'){
       showToast(t('pushEnabled'), true);
       startNotificationListeners();
+      await registerForPushNotifications();
       return true;
     }
     showToast(t('notifDenied'));
@@ -1471,8 +1517,10 @@ function startNotificationListeners(){
   const user = auth.currentUser;
   if(!user) return;
 
-  if(notifUnsubscribe) notifUnsubscribe();
-  if(messageNotifUnsubscribe) messageNotifUnsubscribe();
+  if(notifUnsubscribe){ notifUnsubscribe(); notifUnsubscribe = null; }
+  if(messageNotifUnsubscribe){ messageNotifUnsubscribe(); messageNotifUnsubscribe = null; }
+  messageSubUnsubscribes.forEach(unsub=>{ try{ unsub(); }catch(e){} });
+  messageSubUnsubscribes.clear();
 
   notifFirstLoad = true;
   messageNotifFirstLoad = true;
@@ -1524,7 +1572,8 @@ function startNotificationListeners(){
           ? (cd.customerName || cd.customerEmail || '')
           : (cd.craftsmanName || '');
 
-        db.collection('conversations').doc(convId).collection('messages')
+        if(messageSubUnsubscribes.has(convId)) return;
+        const unsubMessages = db.collection('conversations').doc(convId).collection('messages')
           .orderBy('createdAt', 'desc').limit(20)
           .onSnapshot(msgSnap=>{
             msgSnap.docChanges().forEach(change=>{
@@ -1545,21 +1594,22 @@ function startNotificationListeners(){
               unreadMessages++;
               setBadge('msg-badge', unreadMessages);
 
-              const body = (m.text || '').trim() || t('newMessageNotif');
-              showLocalNotification(
-                otherName ? `${t('messageFrom')} ${otherName}` : t('newMessageNotif'),
-                body
-              );
+              const senderLabel=(m.senderName||otherName||'').trim();
+              const body=(m.text||'').trim()||t('newMessageNotif');
+              showLocalNotification(senderLabel?`${t('messageFrom')} ${senderLabel}`:t('newMessageNotif'),body);
             });
           }, ()=>{});
+        messageSubUnsubscribes.set(convId, unsubMessages);
       });
       messageNotifFirstLoad = false;
     }, error=>console.log('تعذر الاستماع للمحادثات:', error));
 }
 
 function stopNotificationListeners(){
-  stopNotificationListeners();
-  if(messageNotifUnsubscribe){ messageNotifUnsubscribe(); messageNotifUnsubscribe = null; }
+  if(notifUnsubscribe){ try{ notifUnsubscribe(); }catch(e){} notifUnsubscribe = null; }
+  if(messageNotifUnsubscribe){ try{ messageNotifUnsubscribe(); }catch(e){} messageNotifUnsubscribe = null; }
+  messageSubUnsubscribes.forEach(unsub=>{ try{ unsub(); }catch(e){} });
+  messageSubUnsubscribes.clear();
   knownBookingStatuses = {};
   knownMessageIds = new Set();
 }
@@ -1775,6 +1825,25 @@ function skeletonCards(n){
   `).join('');
 }
 
+const customerNameOverlay=document.getElementById('customer-name-overlay');
+const customerRequiredName=document.getElementById('customer-required-name');
+const customerNameError=document.getElementById('customer-name-error');
+let pendingCustomerNameResolve=null;
+function requireCustomerName(){ return new Promise(resolve=>{ pendingCustomerNameResolve=resolve; customerRequiredName.value=''; customerNameError.classList.remove('show'); customerNameOverlay.classList.add('show'); setTimeout(()=>customerRequiredName.focus(),80); }); }
+document.getElementById('save-customer-name').addEventListener('click',async()=>{
+  const name=customerRequiredName.value.trim().replace(/\s+/g,' ');
+  if(name.length<2){ customerNameError.textContent='يرجى إدخال اسمك'; customerNameError.classList.add('show'); return; }
+  const user=auth.currentUser; if(!user)return;
+  const btn=document.getElementById('save-customer-name'); btn.disabled=true;
+  try{ await db.collection('customers').doc(user.uid).set({name,email:user.email,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true}); await user.updateProfile({displayName:name}).catch(()=>{}); customerNameOverlay.classList.remove('show'); if(pendingCustomerNameResolve){pendingCustomerNameResolve(name);pendingCustomerNameResolve=null;} }
+  catch(e){customerNameError.textContent='تعذر حفظ الاسم';customerNameError.classList.add('show');} finally{btn.disabled=false;}
+});
+customerRequiredName.addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('save-customer-name').click();});
+async function ensureCustomerName(user){
+  try{ const snap=await db.collection('customers').doc(user.uid).get(); const data=snap.exists?snap.data():{}; const existing=(data.name||user.displayName||'').trim(); return existing||await requireCustomerName(); }
+  catch(e){ return user.displayName||''; }
+}
+
 auth.onAuthStateChanged(async (user)=>{
   const loggedOut = document.getElementById('account-logged-out');
   const loggedIn = document.getElementById('account-logged-in');
@@ -1782,6 +1851,7 @@ auth.onAuthStateChanged(async (user)=>{
     let displayName = user.email;
     let profilePhotoURL = null;
     isCraftsmanUser = false;
+    let customerDisplayName = '';
     let craftsmanData = null;
     favoriteIds = new Set();
     try{
@@ -1795,11 +1865,13 @@ auth.onAuthStateChanged(async (user)=>{
         const customerDoc = await db.collection('customers').doc(user.uid).get();
         if(customerDoc.exists){
           if(customerDoc.data().name) displayName = customerDoc.data().name;
+          customerDisplayName = (customerDoc.data().name || '').trim();
           favoriteIds = new Set(customerDoc.data().favorites || []);
           profilePhotoURL = customerDoc.data().photoURL || null;
         }
       }
     }catch(e){}
+    if(!isCraftsmanUser){ customerDisplayName = customerDisplayName || (await ensureCustomerName(user)); if(customerDisplayName) displayName = customerDisplayName; }
     renderCraftsmen();
 
     loggedOut.style.display = 'none';
