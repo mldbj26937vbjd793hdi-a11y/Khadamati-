@@ -123,6 +123,22 @@ nav button .n-ic{display:block;font-size:19px;margin-bottom:2px;}
 .chat-input-row{display:flex;gap:8px;padding:12px;border-top:1px solid var(--line);flex-shrink:0;}
 .chat-input-row input{margin:0;flex:1;}
 .chat-input-row button{width:auto;padding:0 18px;flex-shrink:0;}
+.chat-presence{font-size:11px;color:var(--ink-soft);margin-top:3px}
+.chat-typing{min-height:18px;padding:0 14px;color:var(--ink-soft);font-size:11px}
+.chat-tool{width:42px!important;padding:0!important;flex-shrink:0}
+.msg-wrap{display:flex;flex-direction:column;max-width:82%}
+.msg-wrap.mine{align-self:flex-end;align-items:flex-end}
+.msg-wrap.theirs{align-self:flex-start;align-items:flex-start}
+.msg-actions{display:flex;gap:5px;font-size:10px;margin-top:2px}
+.msg-actions button{width:auto!important;margin:0;padding:2px 5px;border:0;background:transparent;color:var(--ink-soft);font-size:10px}
+.msg-meta{font-size:10px;opacity:.75;margin-top:3px}
+.chat-media{max-width:220px;border-radius:10px;display:block}
+.audio-message{width:220px;max-width:100%}
+.new-chat-box{background:#fff;border:1px solid var(--line);border-radius:14px;padding:10px;margin-bottom:12px}
+.new-chat-box button{width:auto}
+.new-chat-result{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 0;border-top:1px solid var(--line)}
+.new-chat-result button{margin:0;padding:7px 10px}
+
 
 #offline-banner{position:fixed;top:0;left:0;right:0;z-index:9998;background:var(--rust-deep);color:#fff;text-align:center;padding:9px 16px;font-size:13px;font-weight:700;transform:translateY(-100%);transition:transform .3s ease;}
 #offline-banner.show{transform:translateY(0);}
@@ -246,6 +262,11 @@ nav button .n-ic{display:block;font-size:19px;margin-bottom:2px;}
 <!-- ---------------- MESSAGES (real-time chat per booking) ---------------- -->
 <div id="page-messages" class="page">
   <h2 data-i18n="messages">الرسائل</h2>
+  <div class="new-chat-box">
+    <input id="new-chat-user" placeholder="البحث بالبريد الإلكتروني أو UID">
+    <button id="new-chat-btn">💬 محادثة جديدة</button>
+    <div id="new-chat-results"></div>
+  </div>
   <div id="conversations-list"><div class="muted" data-i18n="loading">جارٍ التحميل...</div></div>
 </div>
 
@@ -451,9 +472,17 @@ nav button .n-ic{display:block;font-size:19px;margin-bottom:2px;}
 <div class="overlay" id="chat-overlay">
   <div class="modal chat-modal">
     <button class="modal-close" id="chat-close">×</button>
-    <div class="chat-header"><h3 id="chat-title"></h3><div class="chat-subtitle" id="chat-subtitle">محادثة</div></div>
+    <div class="chat-header">
+      <h3 id="chat-title"></h3>
+      <div class="chat-subtitle" id="chat-subtitle">محادثة</div>
+      <div class="chat-presence" id="chat-presence">⚪ غير متصل</div>
+    </div>
     <div class="chat-messages" id="chat-messages"></div>
+    <div class="chat-typing" id="chat-typing"></div>
     <div class="chat-input-row">
+      <button class="chat-tool" id="chat-image-btn" title="إرسال صورة">📷</button>
+      <input type="file" id="chat-image-input" accept="image/*" hidden>
+      <button class="chat-tool" id="chat-record-btn" title="رسالة صوتية">🎤</button>
       <input type="text" id="chat-input" data-i18n-ph="typeMessage" placeholder="اكتب رسالة...">
       <button id="chat-send" data-i18n="send">إرسال</button>
     </div>
@@ -487,6 +516,7 @@ nav button .n-ic{display:block;font-size:19px;margin-bottom:2px;}
 <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-analytics-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-messaging-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-storage-compat.js"></script>
 
 <script>
 // ================= Firebase init =================
@@ -1284,137 +1314,287 @@ document.getElementById('report-submit').addEventListener('click', async ()=>{
   }
 });
 
-// ================= Chat (real-time, persistent conversation per customer-craftsman pair) =================
+// ================= Chat (general users + realtime features) =================
 const chatOverlay = document.getElementById('chat-overlay');
 let chatConvId = null;
 let chatUnsubscribe = null;
+let chatPresenceUnsubscribe = null;
+let typingTimer = null;
+let recording = null;
+let recordingChunks = [];
 
-function convIdFor(customerId, craftsmanId){ return customerId + '_' + craftsmanId; }
+function convIdFor(a,b){ return [a,b].sort().join('_'); }
+function chatOtherId(conv){
+  const u = auth.currentUser;
+  return u ? ((conv.participants||[]).find(id=>id!==u.uid)||null) : null;
+}
+function safeText(v){ return escapeHtml(String(v||'')); }
+
+async function ensureChatUserProfile(user, displayName){
+  if(!user) return;
+  try{
+    await db.collection('users').doc(user.uid).set({
+      name: displayName || user.displayName || user.email || 'User',
+      email: user.email || '',
+      online: true,
+      lastSeen: firebase.firestore.FieldValue.serverTimestamp()
+    }, {merge:true});
+  }catch(e){ console.log('users profile:',e); }
+}
+
+function startPresence(){
+  const user=auth.currentUser;
+  if(!user) return;
+  ensureChatUserProfile(user, user.displayName || user.email);
+  const setOnline=async online=>{
+    try{ await db.collection('users').doc(user.uid).set({
+      online, lastSeen: firebase.firestore.FieldValue.serverTimestamp()
+    },{merge:true}); }catch(e){}
+  };
+  setOnline(true);
+  document.addEventListener('visibilitychange',()=>setOnline(document.visibilityState==='visible'));
+  window.addEventListener('beforeunload',()=>{ try{
+    db.collection('users').doc(user.uid).set({online:false,lastSeen:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});
+  }catch(e){} });
+}
 
 async function loadConversations(){
-  const list = document.getElementById('conversations-list');
-  const user = auth.currentUser;
-  if(!user){ list.innerHTML = '<div class="muted" style="text-align:center;padding:20px;">يرجى تسجيل الدخول</div>'; return; }
-  list.innerHTML = skeletonCards(3);
+  const list=document.getElementById('conversations-list');
+  const user=auth.currentUser;
+  if(!user){list.innerHTML='<div class="muted">يرجى تسجيل الدخول</div>';return;}
   try{
-    const snap = await db.collection('conversations').where('participants','array-contains',user.uid).limit(50).get();
-    if(snap.empty){ list.innerHTML = `<div class="muted" style="text-align:center;padding:20px;">${t('noConversations')}</div>`; return; }
-    const docs=snap.docs.slice().sort((a,b)=>{ const av=a.data().updatedAt?.toMillis?a.data().updatedAt.toMillis():0; const bv=b.data().updatedAt?.toMillis?b.data().updatedAt.toMillis():0; return bv-av; });
+    const snap=await db.collection('conversations').where('participants','array-contains',user.uid).limit(50).get();
+    if(snap.empty){list.innerHTML='<div class="muted" style="text-align:center;padding:20px;">لا توجد محادثات</div>';return;}
+    const docs=snap.docs.slice().sort((a,b)=>{
+      const av=a.data().updatedAt?.toMillis?a.data().updatedAt.toMillis():0;
+      const bv=b.data().updatedAt?.toMillis?b.data().updatedAt.toMillis():0; return bv-av;
+    });
     list.innerHTML=docs.map(doc=>{
-      const d=doc.data();
-      const otherLabel=user.uid===d.craftsmanId?(d.customerName||d.customerEmail||'Customer'):(d.craftsmanName||'');
-      const lastText=d.lastMessage||'';
+      const d=doc.data(), other=chatOtherId(d), names=d.participantNames||{};
+      const label=names[other]||d.craftsmanName||d.customerName||'مستخدم';
       const unread=Number((d.unreadCountBy||{})[user.uid]||0);
       const time=d.lastMessageAt?.toDate?d.lastMessageAt.toDate().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):'';
-      const safeName=escapeHtml(otherLabel).replace(/'/g,"\'");
-      return `<div class="conv-item" onclick="openChat('${doc.id}','${safeName}')"><div class="avatar">${initials(otherLabel||'؟')}</div><div class="conv-body"><div style="display:flex;align-items:center;justify-content:space-between;gap:8px;"><div class="conv-name">${escapeHtml(otherLabel)}</div><span class="conv-time">${time}</span></div><div class="conv-meta"><div class="conv-last">${escapeHtml(lastText||'لا توجد رسائل بعد')}</div>${unread?`<span class="conv-unread">${unread>99?'99+':unread}</span>`:''}</div></div></div>`;
+      return `<div class="conv-item" onclick="openChat('${doc.id}','${safeText(label).replace(/'/g,"\\'")}','${other||''}')">
+        <div class="avatar">${initials(label||'؟')}</div>
+        <div class="conv-body"><div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+          <div class="conv-name">${safeText(label)}</div><span class="conv-time">${time}</span>
+        </div><div class="conv-meta"><div class="conv-last">${safeText(d.lastMessage||'لا توجد رسائل بعد')}</div>${unread?`<span class="conv-unread">${unread>99?'99+':unread}</span>`:''}</div></div></div>`;
     }).join('');
-  }catch(error){
-    console.error('تعذر تحميل المحادثات:',error);
-    list.innerHTML=`<div class="muted">تعذر تحميل المحادثات ${error&&error.code?'('+error.code+')':''}</div>`;
+  }catch(e){
+    console.error(e); list.innerHTML='<div class="muted">تعذر تحميل المحادثات</div>';
   }
+}
+
+async function findUsers(){
+  const q=document.getElementById('new-chat-user').value.trim().toLowerCase();
+  const box=document.getElementById('new-chat-results');
+  if(!q){box.innerHTML='';return;}
+  const me=auth.currentUser;
+  if(!me){box.innerHTML='<div class="muted">سجل الدخول أولاً</div>';return;}
+  try{
+    const snap=await db.collection('users').limit(50).get();
+    const rows=snap.docs.filter(d=>d.id!==me.uid).map(d=>({id:d.id,...d.data()}))
+      .filter(u=>(u.email||'').toLowerCase().includes(q)||(u.name||'').toLowerCase().includes(q)||u.id.toLowerCase()===q).slice(0,10);
+    if(!rows.length){box.innerHTML='<div class="muted">لا يوجد مستخدم مطابق</div>';return;}
+    box.innerHTML=rows.map(u=>`<div class="new-chat-result"><span>${safeText(u.name||u.email||u.id)}</span><button onclick="startGeneralChat('${u.id}','${safeText(u.name||u.email||'مستخدم').replace(/'/g,"\\'")}')">فتح</button></div>`).join('');
+  }catch(e){box.innerHTML='<div class="muted">تعذر البحث</div>';}
+}
+
+async function startGeneralChat(otherId, otherName){
+  const user=auth.currentUser;
+  if(!user||!otherId||otherId===user.uid)return;
+  const meName=await getCurrentUserDisplayName()||user.email||'User';
+  const id=convIdFor(user.uid,otherId);
+  await db.collection('conversations').doc(id).set({
+    participants:[user.uid,otherId],
+    participantNames:{[user.uid]:meName,[otherId]:otherName||'مستخدم'},
+    updatedAt:firebase.firestore.FieldValue.serverTimestamp(),
+    unreadCountBy:{[user.uid]:0}
+  },{merge:true});
+  document.getElementById('new-chat-results').innerHTML='';
+  document.getElementById('new-chat-user').value='';
+  openChat(id,otherName||'مستخدم',otherId);
+  loadConversations();
 }
 
 async function openChatWithCraftsman(craftsmanId, craftsmanName){
-  const user = auth.currentUser;
-  if(!user){
-    showToast(t('login'));
-    showPage('page-account');
-    return;
-  }
-  if(user.uid === craftsmanId){ return; }
-  const convId = convIdFor(user.uid, craftsmanId);
-  try{
-    await db.collection('conversations').doc(convId).set({
-      participants: [user.uid, craftsmanId],
-      customerId: user.uid,
-      customerEmail: user.email,
-      customerName: (await getCurrentUserDisplayName()) || user.email || 'Customer',
-      craftsmanId: craftsmanId,
-      craftsmanName: craftsmanName,
-      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-    }, { merge: true });
-  }catch(e){
-    console.error('تعذر إنشاء المحادثة:', e);
-    showToast(currentLang==='fr' ? 'Impossible de créer la conversation' : (currentLang==='en' ? 'Unable to create conversation' : 'تعذر إنشاء المحادثة') + (e && e.code ? ' ('+e.code+')' : ''));
-    return;
-  }
-  openChat(convId, craftsmanName);
+  await startGeneralChat(craftsmanId,craftsmanName);
 }
 
-function openChat(convId, otherLabel){
-  chatConvId = convId;
-  document.getElementById('chat-title').textContent = otherLabel;
-  const currentUserForRead = auth.currentUser;
-  if(currentUserForRead){
-    db.collection('conversations').doc(convId).set(
-      { ['unreadCountBy.'+currentUserForRead.uid]: 0 },
-      {merge:true}
-    ).then(()=>{
-      // Refresh the conversation list so the unread badge disappears immediately.
-      if(document.getElementById('page-messages').classList.contains('active')) loadConversations();
-    }).catch(()=>{});
-  }
-  document.getElementById('chat-messages').innerHTML = '';
-  document.getElementById('chat-input').value = '';
+function renderChatMessage(id,m,user){
+  const mine=user && m.senderId===user.uid;
+  const cls=mine?'mine':'theirs';
+  let body='';
+  if(m.deleted) body='<em>تم حذف هذه الرسالة</em>';
+  else if(m.type==='image' && m.mediaUrl) body=`<img class="chat-media" src="${m.mediaUrl}" alt="صورة">`;
+  else if(m.type==='audio' && m.mediaUrl) body=`<audio class="audio-message" controls src="${m.mediaUrl}"></audio>`;
+  else body=safeText(m.text);
+  const seen=mine && (m.seenBy||[]).some(x=>x!==user.uid);
+  const tick=mine?(seen?'✓✓':'✓'):'';
+  const actions=mine&&!m.deleted?`<div class="msg-actions"><button onclick="editChatMessage('${id}')">✏️ تعديل</button><button onclick="deleteChatMessage('${id}')">🗑 حذف</button></div>`:'';
+  return `<div class="msg-wrap ${cls}" data-id="${id}"><div class="bubble ${cls}">${body}<div class="msg-meta">${m.edited?'تم التعديل · ':''}${tick}</div></div>${actions}</div>`;
+}
+
+async function markMessagesRead(convId,snap,user){
+  const batch=db.batch(); let n=0;
+  snap.docs.forEach(doc=>{
+    const m=doc.data();
+    if(m.senderId!==user.uid && !(m.seenBy||[]).includes(user.uid)){
+      batch.update(doc.ref,{deliveredTo:firebase.firestore.FieldValue.arrayUnion(user.uid),seenBy:firebase.firestore.FieldValue.arrayUnion(user.uid)}); n++;
+    }
+  });
+  if(n) try{await batch.commit();}catch(e){}
+  try{await db.collection('conversations').doc(convId).set({['unreadCountBy.'+user.uid]:0},{merge:true});}catch(e){}
+}
+
+function listenChatPresence(otherId){
+  if(chatPresenceUnsubscribe)chatPresenceUnsubscribe();
+  if(!otherId)return;
+  chatPresenceUnsubscribe=db.collection('users').doc(otherId).onSnapshot(doc=>{
+    const d=doc.exists?doc.data():{};
+    const el=document.getElementById('chat-presence');
+    if(!el)return;
+    if(d.online) el.textContent='🟢 متصل الآن';
+    else{
+      const dt=d.lastSeen?.toDate?d.lastSeen.toDate():null;
+      el.textContent=dt?'آخر ظهور '+dt.toLocaleString():'⚪ غير متصل';
+    }
+  });
+}
+
+function listenTyping(convId,otherId){
+  db.collection('conversations').doc(convId).onSnapshot(doc=>{
+    const t=doc.data()?.typing||{};
+    const el=document.getElementById('chat-typing');
+    if(el) el.textContent=t[otherId]?'⌨️ يكتب الآن...':'';
+  });
+}
+
+function setTyping(value){
+  const user=auth.currentUser;
+  if(!user||!chatConvId)return;
+  const key='typing.'+user.uid;
+  db.collection('conversations').doc(chatConvId).set({[key]:value},{merge:true}).catch(()=>{});
+}
+
+function openChat(convId,otherLabel,otherId){
+  chatConvId=convId;
+  document.getElementById('chat-title').textContent=otherLabel||'محادثة';
+  document.getElementById('chat-input').value='';
+  document.getElementById('chat-messages').innerHTML='';
   chatOverlay.classList.add('show');
-
-  if(chatUnsubscribe) chatUnsubscribe();
-  chatUnsubscribe = db.collection('conversations').doc(convId).collection('messages')
-    .orderBy('createdAt', 'asc')
-    .onSnapshot(snap=>{
-      const box = document.getElementById('chat-messages');
-      const user = auth.currentUser;
-      box.innerHTML = snap.docs.map(doc=>{
-        const m = doc.data();
-        const mine = user && m.senderId === user.uid;
-        return `<div class="bubble ${mine?'mine':'theirs'}">${(m.text||'').replace(/</g,'&lt;')}</div>`;
-      }).join('');
-      box.scrollTop = box.scrollHeight;
-    }, error=>{
-      console.error('تعذر تحميل الرسائل:', error);
-      showToast(currentLang==='fr' ? 'Impossible de charger les messages' : (currentLang==='en' ? 'Unable to load messages' : 'تعذر تحميل الرسائل') + (error && error.code ? ' ('+error.code+')' : ''));
-    });
+  if(chatUnsubscribe)chatUnsubscribe();
+  if(chatPresenceUnsubscribe)chatPresenceUnsubscribe();
+  if(auth.currentUser) db.collection('conversations').doc(convId).set({['unreadCountBy.'+auth.currentUser.uid]:0},{merge:true}).catch(()=>{});
+  chatUnsubscribe=db.collection('conversations').doc(convId).collection('messages').orderBy('createdAt','asc').onSnapshot(async snap=>{
+    const user=auth.currentUser; if(!user)return;
+    document.getElementById('chat-messages').innerHTML=snap.docs.map(d=>renderChatMessage(d.id,d.data(),user)).join('');
+    const box=document.getElementById('chat-messages');box.scrollTop=box.scrollHeight;
+    await markMessagesRead(convId,snap,user);
+  },e=>console.error('chat',e));
+  listenChatPresence(otherId);
+  listenTyping(convId,otherId);
 }
-
-document.getElementById('chat-close').addEventListener('click', ()=>{
-  chatOverlay.classList.remove('show');
-  if(chatUnsubscribe){ chatUnsubscribe(); chatUnsubscribe = null; }
-  if(auth.currentUser && document.getElementById('page-messages').classList.contains('active')) loadConversations();
-});
-chatOverlay.addEventListener('click', e=>{
-  if(e.target===chatOverlay){
-    chatOverlay.classList.remove('show');
-    if(chatUnsubscribe){ chatUnsubscribe(); chatUnsubscribe = null; }
-    if(auth.currentUser && document.getElementById('page-messages').classList.contains('active')) loadConversations();
-  }
-});
 
 async function sendChatMessage(){
-  const input = document.getElementById('chat-input');
-  const text = input.value.trim();
-  const user = auth.currentUser;
-  if(!text || !user || !chatConvId) return;
-  input.value = '';
+  const input=document.getElementById('chat-input'), text=input.value.trim(), user=auth.currentUser;
+  if(!text||!user||!chatConvId)return;
+  input.value=''; setTyping(false);
+  const convRef=db.collection('conversations').doc(chatConvId);
   try{
-    const senderName = (await getCurrentUserDisplayName()) || user.email || 'User';
-    const convRef = db.collection('conversations').doc(chatConvId);
-    const convSnap = await convRef.get();
-    const conv = convSnap.exists ? convSnap.data() : {};
-    const recipientId = (conv.participants || []).find(id => id !== user.uid) || null;
-    await convRef.collection('messages').add({senderId:user.uid,senderName,text,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
-    const updateData = {lastMessage:text,lastMessageSenderId:user.uid,lastMessageSenderName:senderName,lastMessageAt:firebase.firestore.FieldValue.serverTimestamp(),updatedAt:firebase.firestore.FieldValue.serverTimestamp()};
-    if(recipientId) updateData['unreadCountBy.'+recipientId]=firebase.firestore.FieldValue.increment(1);
-    await convRef.set(updateData,{merge:true});
-  }catch(error){
-    console.error('تعذر إرسال الرسالة:', error);
-    showToast(currentLang==='fr' ? "Échec de l'envoi" : (currentLang==='en' ? "Failed to send" : "تعذر إرسال الرسالة") + (error && error.code ? ' ('+error.code+')' : ''));
-  }
+    const conv=(await convRef.get()).data()||{};
+    const recipientId=(conv.participants||[]).find(x=>x!==user.uid)||null;
+    const senderName=await getCurrentUserDisplayName()||user.email||'User';
+    await convRef.collection('messages').add({
+      senderId:user.uid,senderName,text,type:'text',seenBy:[],deliveredTo:[],
+      edited:false,deleted:false,createdAt:firebase.firestore.FieldValue.serverTimestamp()
+    });
+    const upd={lastMessage:text,lastMessageSenderId:user.uid,lastMessageSenderName:senderName,lastMessageAt:firebase.firestore.FieldValue.serverTimestamp(),updatedAt:firebase.firestore.FieldValue.serverTimestamp(),['typing.'+user.uid]:false};
+    if(recipientId)upd['unreadCountBy.'+recipientId]=firebase.firestore.FieldValue.increment(1);
+    await convRef.set(upd,{merge:true});
+  }catch(e){console.error(e);showToast('تعذر إرسال الرسالة');}
 }
-document.getElementById('chat-send').addEventListener('click', sendChatMessage);
-document.getElementById('chat-input').addEventListener('keydown', e=>{
-  if(e.key === 'Enter') sendChatMessage();
+
+async function editChatMessage(id){
+  const user=auth.currentUser;if(!user||!chatConvId)return;
+  const ref=db.collection('conversations').doc(chatConvId).collection('messages').doc(id);
+  const snap=await ref.get();const m=snap.data()||{};
+  if(m.senderId!==user.uid||m.deleted||m.type!=='text')return;
+  const value=prompt('تعديل الرسالة',m.text||'');if(value===null)return;
+  const text=value.trim();if(!text)return;
+  await ref.update({text,edited:true,editedAt:firebase.firestore.FieldValue.serverTimestamp()});
+  await db.collection('conversations').doc(chatConvId).set({lastMessage:text,lastMessageAt:firebase.firestore.FieldValue.serverTimestamp(),updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});
+}
+
+async function deleteChatMessage(id){
+  const user=auth.currentUser;if(!user||!chatConvId)return;
+  const ref=db.collection('conversations').doc(chatConvId).collection('messages').doc(id);
+  const snap=await ref.get();const m=snap.data()||{};
+  if(m.senderId!==user.uid)return;
+  if(!confirm('حذف هذه الرسالة؟'))return;
+  await ref.update({deleted:true,text:'',mediaUrl:'',deletedAt:firebase.firestore.FieldValue.serverTimestamp()});
+}
+
+async function uploadChatImage(file){
+  const user=auth.currentUser;if(!file||!user||!chatConvId)return;
+  try{
+    const storage=firebase.storage();
+    const ref=storage.ref(`chat-media/${chatConvId}/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g,'_')}`);
+    const task=await ref.put(file);
+    const url=await task.ref.getDownloadURL();
+    const convRef=db.collection('conversations').doc(chatConvId);
+    const conv= (await convRef.get()).data()||{};
+    const recipientId=(conv.participants||[]).find(x=>x!==user.uid)||null;
+    await convRef.collection('messages').add({senderId:user.uid,senderName:await getCurrentUserDisplayName(),type:'image',mediaUrl:url,text:'📷 صورة',seenBy:[],deliveredTo:[],createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+    if(recipientId)await convRef.set({lastMessage:'📷 صورة',lastMessageAt:firebase.firestore.FieldValue.serverTimestamp(),updatedAt:firebase.firestore.FieldValue.serverTimestamp(),['unreadCountBy.'+recipientId]:firebase.firestore.FieldValue.increment(1)},{merge:true});
+  }catch(e){console.error(e);showToast('تعذر رفع الصورة. تأكد من تفعيل Firebase Storage.');}
+}
+
+async function recordVoice(){
+  const user=auth.currentUser;if(!user||!chatConvId)return;
+  if(!navigator.mediaDevices?.getUserMedia){showToast('التسجيل الصوتي غير مدعوم هنا');return;}
+  try{
+    const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+    recordingChunks=[];
+    recording=new MediaRecorder(stream);
+    recording.ondataavailable=e=>{if(e.data.size)recordingChunks.push(e.data);};
+    recording.onstop=async()=>{
+      stream.getTracks().forEach(t=>t.stop());
+      const blob=new Blob(recordingChunks,{type:'audio/webm'});
+      try{
+        const ref=firebase.storage().ref(`chat-media/${chatConvId}/voice_${Date.now()}.webm`);
+        await ref.put(blob);const url=await ref.getDownloadURL();
+        const convRef=db.collection('conversations').doc(chatConvId), conv=(await convRef.get()).data()||{};
+        const recipientId=(conv.participants||[]).find(x=>x!==user.uid)||null;
+        await convRef.collection('messages').add({senderId:user.uid,senderName:await getCurrentUserDisplayName(),type:'audio',mediaUrl:url,text:'🎤 رسالة صوتية',seenBy:[],deliveredTo:[],createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+        if(recipientId)await convRef.set({lastMessage:'🎤 رسالة صوتية',lastMessageAt:firebase.firestore.FieldValue.serverTimestamp(),updatedAt:firebase.firestore.FieldValue.serverTimestamp(),['unreadCountBy.'+recipientId]:firebase.firestore.FieldValue.increment(1)},{merge:true});
+      }catch(e){console.error(e);showToast('تعذر حفظ الرسالة الصوتية.');}
+    };
+    recording.start();showToast('🎤 التسجيل جارٍ... اضغط الزر مرة أخرى للإيقاف',true);
+  }catch(e){showToast('اسمح للتطبيق باستخدام الميكروفون');}
+}
+
+document.getElementById('chat-close').addEventListener('click',()=>{
+  setTyping(false);chatOverlay.classList.remove('show');
+  if(chatUnsubscribe){chatUnsubscribe();chatUnsubscribe=null;}
+  if(chatPresenceUnsubscribe){chatPresenceUnsubscribe();chatPresenceUnsubscribe=null;}
+  loadConversations();
 });
+chatOverlay.addEventListener('click',e=>{
+  if(e.target===chatOverlay)document.getElementById('chat-close').click();
+});
+document.getElementById('chat-send').addEventListener('click',sendChatMessage);
+document.getElementById('chat-input').addEventListener('keydown',e=>{if(e.key==='Enter')sendChatMessage();});
+document.getElementById('chat-input').addEventListener('input',()=>{
+  setTyping(true);clearTimeout(typingTimer);typingTimer=setTimeout(()=>setTyping(false),1800);
+});
+document.getElementById('chat-image-btn').addEventListener('click',()=>document.getElementById('chat-image-input').click());
+document.getElementById('chat-image-input').addEventListener('change',e=>{const f=e.target.files?.[0];if(f)uploadChatImage(f);e.target.value='';});
+document.getElementById('chat-record-btn').addEventListener('click',()=>{
+  if(recording&&recording.state==='recording')recording.stop();else recordVoice();
+});
+document.getElementById('new-chat-btn').addEventListener('click',findUsers);
+document.getElementById('new-chat-user').addEventListener('keydown',e=>{if(e.key==='Enter')findUsers();});
 
 // ================= Notifications (orders + messages) =================
 let notifUnsubscribe = null;
@@ -1869,6 +2049,7 @@ auth.onAuthStateChanged(async (user)=>{
   const loggedOut = document.getElementById('account-logged-out');
   const loggedIn = document.getElementById('account-logged-in');
   if(user){
+    startPresence();
     let displayName = user.email;
     let profilePhotoURL = null;
     isCraftsmanUser = false;
@@ -1989,28 +2170,6 @@ if('serviceWorker' in navigator){
     });
   });
 }
-</script>
-
-<!-- Messages upgrade v1: read receipts, typing indicator hooks -->
-<style>
-#typing-indicator{font-size:12px;color:#777;padding:4px 8px;display:none}
-.msg-status{font-size:11px;margin-right:6px}
-</style>
-<div id="typing-indicator">يكتب الآن...</div>
-<script>
-// Upgrade hooks: keeps existing Firestore structure and adds message status helpers.
-window.messageUpgrade={
- markRead: async function(convId,msgId){
-  if(!firebase.firestore) return;
-  const u=firebase.auth().currentUser;
-  if(!u) return;
-  return firebase.firestore().collection('conversations').doc(convId).collection('messages').doc(msgId).set({readBy:{[u.uid]:true}},{merge:true});
- },
- setTyping: function(convId,value){
-  const u=firebase.auth().currentUser; if(!u||!convId)return;
-  return firebase.firestore().collection('conversations').doc(convId).set({typing:{[u.uid]:!!value}},{merge:true});
- }
-};
 </script>
 </body>
 </html>
