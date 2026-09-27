@@ -192,7 +192,7 @@ nav button .n-ic{display:block;font-size:19px;margin-bottom:2px;}
        بعد ما تسجلي فشبكة إعلانات (Adsterra/PropellerAds) وتاخدي
        كود الإعلان ديالك، الصقيه هنا بدل هاد الـ div، أو جواه.
        ======================================================== -->
-  <div id="ad-slot-home" style="min-height:0;display:flex;justify-content:center;overflow:hidden;">
+  <div id="ad-slot-home" style="min-height:260px;display:flex;justify-content:center;align-items:center;overflow:hidden;margin:15px 0;">
     <script>
       atOptions = {
         'key' : '33ca295e7132ffe8c23d91a46a83927d',
@@ -1989,6 +1989,37 @@ if('serviceWorker' in navigator){
     });
   });
 }
+</script>
+
+<script>
+// ===== PATCH: منع إشعارات الرسائل القديمة + تجهيز حالة القراءة =====
+(function(){
+  const KEY = "khadamati_notification_seen_v1";
+
+  window.khadamatiNotifyGuard = {
+    shouldNotify(id){
+      if(!id) return true;
+      const seen = JSON.parse(localStorage.getItem(KEY)||"{}");
+      if(seen[id]) return false;
+      seen[id]=Date.now();
+      localStorage.setItem(KEY, JSON.stringify(seen));
+      return true;
+    },
+    markConversationRead(id){
+      const seen = JSON.parse(localStorage.getItem(KEY)||"{}");
+      if(id) seen[id]=Date.now();
+      localStorage.setItem(KEY, JSON.stringify(seen));
+    }
+  };
+
+  // تنظيف البيانات القديمة حتى لا تكبر localStorage
+  try{
+    const seen=JSON.parse(localStorage.getItem(KEY)||"{}");
+    const now=Date.now();
+    Object.keys(seen).forEach(k=>{ if(now-seen[k]>2592000000) delete seen[k]; });
+    localStorage.setItem(KEY,JSON.stringify(seen));
+  }catch(e){}
+})();
 </script>
 </body>
 </html>
