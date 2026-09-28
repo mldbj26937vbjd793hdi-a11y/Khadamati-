@@ -1,4 +1,6 @@
-// ===== Monetag (verification + ad SDK) =====
+// =====================================================
+// Monetag
+// =====================================================
 self.options = {
     "domain": "3nbf4.com",
     "zoneId": 11843136
@@ -15,7 +17,7 @@ importScripts(
 // Khadamati Service Worker
 // =====================================================
 
-const CACHE_NAME = 'khadamati-cache-v5';
+const CACHE_NAME = 'khadamati-cache-v6';
 
 const STATIC_ASSETS = [
     './',
@@ -33,28 +35,14 @@ const STATIC_ASSETS = [
 self.addEventListener('install', event => {
 
     event.waitUntil(
-
         caches.open(CACHE_NAME)
-            .then(cache => {
-
-                return cache.addAll(STATIC_ASSETS);
-
-            })
+            .then(cache => cache.addAll(STATIC_ASSETS))
             .catch(error => {
-
-                console.log(
-                    'Cache install error:',
-                    error
-                );
-
+                console.log('Cache install error:', error);
             })
-
     );
 
-
-    // تفعيل النسخة الجديدة مباشرة
     self.skipWaiting();
-
 });
 
 
@@ -66,29 +54,21 @@ self.addEventListener('activate', event => {
 
     event.waitUntil(
 
-        caches.keys()
-            .then(cacheNames => {
+        caches.keys().then(cacheNames => {
 
-                return Promise.all(
+            return Promise.all(
 
-                    cacheNames
-                        .filter(
-                            cacheName =>
-                                cacheName !== CACHE_NAME
-                        )
-                        .map(
-                            cacheName =>
-                                caches.delete(cacheName)
-                        )
+                cacheNames
+                    .filter(cacheName => cacheName !== CACHE_NAME)
+                    .map(cacheName => caches.delete(cacheName))
 
-                );
+            );
 
-            })
-            .then(() => {
+        }).then(() => {
 
-                return self.clients.claim();
+            return self.clients.claim();
 
-            })
+        })
 
     );
 
@@ -96,41 +76,38 @@ self.addEventListener('activate', event => {
 
 
 // =====================================================
-// MESSAGES
+// MESSAGE FROM APP
 // =====================================================
 
 self.addEventListener('message', event => {
 
-    if(
-        event.data &&
-        event.data.type === 'SKIP_WAITING'
-    ){
+    if (!event.data) return;
+
+
+    // تحديث Service Worker مباشرة
+    if (event.data.type === 'SKIP_WAITING') {
 
         self.skipWaiting();
 
     }
 
 
-    if(
-        event.data &&
-        event.data.type === 'CLEAR_CACHE'
-    ){
+    // حذف جميع الكاش
+    if (event.data.type === 'CLEAR_CACHE') {
 
         event.waitUntil(
 
-            caches.keys()
-                .then(cacheNames => {
+            caches.keys().then(cacheNames => {
 
-                    return Promise.all(
+                return Promise.all(
 
-                        cacheNames.map(
-                            cacheName =>
-                                caches.delete(cacheName)
-                        )
+                    cacheNames.map(cacheName =>
+                        caches.delete(cacheName)
+                    )
 
-                    );
+                );
 
-                })
+            })
 
         );
 
@@ -140,17 +117,180 @@ self.addEventListener('message', event => {
 
 
 // =====================================================
+// PUSH NOTIFICATIONS
+// =====================================================
+
+self.addEventListener('push', event => {
+
+    let data = {};
+
+    try {
+
+        data = event.data
+            ? event.data.json()
+            : {};
+
+    } catch (e) {
+
+        data = {
+            title: 'خدماتي',
+            body: event.data
+                ? event.data.text()
+                : 'لديك إشعار جديد'
+        };
+
+    }
+
+
+    const title =
+        data.notification?.title ||
+        data.title ||
+        'خدماتي';
+
+
+    const body =
+        data.notification?.body ||
+        data.body ||
+        'لديك إشعار جديد';
+
+
+    const icon =
+        data.notification?.icon ||
+        data.icon ||
+        './icon-192.png';
+
+
+    const badge =
+        data.notification?.badge ||
+        data.badge ||
+        './icon-192.png';
+
+
+    const url =
+        data.data?.url ||
+        data.url ||
+        './index.html';
+
+
+    const options = {
+
+        body: body,
+
+        icon: icon,
+
+        badge: badge,
+
+        dir: 'rtl',
+
+        lang: 'ar',
+
+        vibrate: [
+            200,
+            100,
+            200
+        ],
+
+        data: {
+            url: url
+        }
+
+    };
+
+
+    event.waitUntil(
+
+        self.registration.showNotification(
+            title,
+            options
+        )
+
+    );
+
+});
+
+
+// =====================================================
+// NOTIFICATION CLICK
+// =====================================================
+
+self.addEventListener(
+    'notificationclick',
+    event => {
+
+        event.notification.close();
+
+        const url =
+            event.notification?.data?.url ||
+            './index.html';
+
+
+        event.waitUntil(
+
+            clients.matchAll({
+                type: 'window',
+                includeUncontrolled: true
+            }).then(clientList => {
+
+                // إذا التطبيق مفتوح
+                for (const client of clientList) {
+
+                    if (
+                        'focus' in client &&
+                        client.url.includes(
+                            new URL(url, self.location.origin).pathname
+                        )
+                    ) {
+
+                        return client.focus();
+
+                    }
+
+                }
+
+
+                // إذا التطبيق مفتوح لكن على صفحة أخرى
+                for (const client of clientList) {
+
+                    if ('focus' in client) {
+
+                        client.postMessage({
+
+                            type: 'OPEN_NOTIFICATION',
+
+                            url: url
+
+                        });
+
+                        return client.focus();
+
+                    }
+
+                }
+
+
+                // فتح التطبيق
+                if (clients.openWindow) {
+
+                    return clients.openWindow(url);
+
+                }
+
+            })
+
+        );
+
+    }
+);
+
+
+// =====================================================
 // FETCH
 // =====================================================
 
 self.addEventListener('fetch', event => {
 
-    if(
-        event.request.method !== 'GET'
-    ){
-
+    if (event.request.method !== 'GET') {
         return;
-
     }
 
 
@@ -158,29 +298,20 @@ self.addEventListener('fetch', event => {
         new URL(event.request.url);
 
 
-    // =================================================
-    // لا نتدخل في Firebase و Google APIs
-    // =================================================
+    // لا نتدخل في Firebase
+    if (
 
-    if(
+        url.hostname.includes('firebaseio.com') ||
 
-        url.hostname.includes(
-            'firebaseio.com'
-        ) ||
+        url.hostname.includes('googleapis.com') ||
 
-        url.hostname.includes(
-            'googleapis.com'
-        ) ||
+        url.hostname.includes('gstatic.com') ||
 
-        url.hostname.includes(
-            'gstatic.com'
-        ) ||
+        url.hostname.includes('google.com') ||
 
-        url.hostname.includes(
-            'google.com'
-        )
+        url.hostname.includes('firebaseapp.com')
 
-    ){
+    ) {
 
         return;
 
@@ -188,58 +319,48 @@ self.addEventListener('fetch', event => {
 
 
     // =================================================
-    // صفحات HTML
-    // =================================================
-    // الإنترنت أولاً حتى يحصل المستخدم على آخر نسخة
+    // HTML / Navigation
+    // Network First
     // =================================================
 
-    if(
+    if (
 
         event.request.mode === 'navigate' ||
 
         url.pathname.endsWith('/') ||
 
-        url.pathname.endsWith(
-            '/index.html'
-        ) ||
+        url.pathname.endsWith('/index.html') ||
 
-        url.pathname.endsWith(
-            'index.html'
-        )
+        url.pathname.endsWith('index.html')
 
-    ){
+    ) {
 
         event.respondWith(
 
-            fetch(
-                event.request,
-                {
-                    cache: 'no-store'
-                }
-            )
+            fetch(event.request, {
+                cache: 'no-store'
+            })
 
             .then(response => {
 
-                if(
+                if (
                     response &&
                     response.ok
-                ){
+                ) {
 
                     const clone =
                         response.clone();
 
 
-                    caches.open(
-                        CACHE_NAME
-                    )
-                    .then(cache => {
+                    caches.open(CACHE_NAME)
+                        .then(cache => {
 
-                        cache.put(
-                            './index.html',
-                            clone
-                        );
+                            cache.put(
+                                './index.html',
+                                clone
+                            );
 
-                    });
+                        });
 
                 }
 
@@ -256,27 +377,18 @@ self.addEventListener('fetch', event => {
 
                 .then(cachedResponse => {
 
-                    if(cachedResponse){
+                    return cachedResponse ||
 
-                        return cachedResponse;
-
-                    }
-
-
-                    return new Response(
-
-                        'لا يمكن الاتصال بالإنترنت',
-
-                        {
-                            status: 503,
-
-                            headers: {
-                                'Content-Type':
-                                    'text/plain; charset=utf-8'
+                        new Response(
+                            'لا يمكن الاتصال بالإنترنت',
+                            {
+                                status: 503,
+                                headers: {
+                                    'Content-Type':
+                                        'text/plain; charset=utf-8'
+                                }
                             }
-                        }
-
-                    );
+                        );
 
                 });
 
@@ -284,78 +396,71 @@ self.addEventListener('fetch', event => {
 
         );
 
-
         return;
 
     }
 
 
     // =================================================
-    // الملفات الثابتة
+    // Static Files
+    // Cache First
     // =================================================
 
     event.respondWith(
 
-        caches.match(
-            event.request
-        )
+        caches.match(event.request)
 
-        .then(cachedResponse => {
+            .then(cachedResponse => {
 
-            if(cachedResponse){
+                if (cachedResponse) {
 
-                return cachedResponse;
-
-            }
-
-
-            return fetch(
-                event.request
-            )
-
-            .then(response => {
-
-                if(
-
-                    response &&
-
-                    response.status === 200 &&
-
-                    response.type === 'basic'
-
-                ){
-
-                    const clone =
-                        response.clone();
-
-
-                    caches.open(
-                        CACHE_NAME
-                    )
-
-                    .then(cache => {
-
-                        cache.put(
-                            event.request,
-                            clone
-                        );
-
-                    });
+                    return cachedResponse;
 
                 }
 
 
-                return response;
+                return fetch(event.request)
+
+                    .then(response => {
+
+                        if (
+
+                            response &&
+
+                            response.status === 200 &&
+
+                            response.type === 'basic'
+
+                        ) {
+
+                            const clone =
+                                response.clone();
+
+
+                            caches.open(CACHE_NAME)
+                                .then(cache => {
+
+                                    cache.put(
+                                        event.request,
+                                        clone
+                                    );
+
+                                });
+
+                        }
+
+
+                        return response;
+
+                    })
+
+                    .catch(() => {
+
+                        return cachedResponse;
+
+                    });
 
             })
-
-            .catch(() => {
-
-                return cachedResponse;
-
-            });
-
-        })
 
     );
 
