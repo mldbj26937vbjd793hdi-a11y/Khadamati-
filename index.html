@@ -542,7 +542,10 @@ if(fcmMessaging){
     const d = payload.data || {};
     const title = n.title || d.title || t("newMessageNotif");
     const body = n.body || d.body || "";
-    if(title || body) showLocalNotification(title, body);
+    const eventId = d.eventId || d.messageId || d.bookingId || d.id || '';
+    const type = d.type || (d.messageId ? 'message' : (d.bookingId ? 'booking' : 'push'));
+    const eventKey = eventId ? ('fcm:'+type+':'+eventId) : '';
+    if(title || body) showLocalNotification(title, body, eventKey);
   });
 }
 
@@ -1682,6 +1685,7 @@ function showStorageUnavailable(){
 }
 
 // ================= Notifications (orders + messages) =================
+// نظام إشعارات موحّد: لا إشعارات قديمة، لا تكرار، والرسالة المقروءة لا تعود كإشعار.
 let notifUnsubscribe = null;
 let messageNotifUnsubscribe = null;
 let messageSubUnsubscribes = new Map();
@@ -1692,6 +1696,11 @@ let knownMessageIds = new Set();
 let unreadNotifications = 0;
 let unreadMessages = 0;
 let notificationItems = [];
+let notificationBaselineAt = 0;
+
+const NOTIF_SEEN_KEY = 'khadamati_notification_seen_v2';
+const NOTIF_MSG_KEY = uid => 'khadamati_notified_messages_v2_' + uid;
+const NOTIF_BOOKING_KEY = uid => 'khadamati_notified_bookings_v2_' + uid;
 
 function escapeHtml(value){
   return String(value || '').replace(/[&<>"']/g, ch => ({
@@ -1711,12 +1720,37 @@ function setBadge(id, count){
   }
 }
 
+function readJson(key, fallback){
+  try{
+    const v = JSON.parse(localStorage.getItem(key) || 'null');
+    return v == null ? fallback : v;
+  }catch(e){ return fallback; }
+}
+function writeJson(key, value){
+  try{ localStorage.setItem(key, JSON.stringify(value)); }catch(e){}
+}
+function pruneMap(map, max=500){
+  const entries=Object.entries(map||{}).sort((a,b)=>Number(a[1]||0)-Number(b[1]||0));
+  if(entries.length<=max) return map||{};
+  return Object.fromEntries(entries.slice(-max));
+}
+function getSeenNotificationMap(){ return readJson(NOTIF_SEEN_KEY, {}); }
+function markNotificationSeen(eventKey){
+  if(!eventKey) return true;
+  const seen=getSeenNotificationMap();
+  if(seen[eventKey]) return false;
+  seen[eventKey]=Date.now();
+  writeJson(NOTIF_SEEN_KEY, pruneMap(seen, 1000));
+  return true;
+}
+function hasSeenNotification(eventKey){
+  if(!eventKey) return false;
+  return !!getSeenNotificationMap()[eventKey];
+}
+
 function addNotificationItem(title, body, type){
   notificationItems.unshift({
-    title: title || t('appName'),
-    body: body || '',
-    type: type || 'general',
-    time: new Date()
+    title: title || t('appName'), body: body || '', type: type || 'general', time: new Date()
   });
   notificationItems = notificationItems.slice(0, 30);
   unreadNotifications++;
@@ -1734,8 +1768,7 @@ function renderNotificationCenter(){
     <div style="background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:8px;">
       <b>${escapeHtml(n.title)}</b>
       <div class="muted" style="margin-top:4px;">${escapeHtml(n.body)}</div>
-    </div>
-  `).join('');
+    </div>`).join('');
 }
 
 function openNotificationCenter(){
@@ -1745,26 +1778,27 @@ function openNotificationCenter(){
   document.getElementById('notifications-overlay').classList.add('show');
 }
 
-function showLocalNotification(title, body){
+function showLocalNotification(title, body, eventKey){
+  // نفس الحدث لا يظهر مرتين حتى لو وصل عبر Firestore وFCM معًا.
+  if(eventKey && !markNotificationSeen(eventKey)) return false;
   addNotificationItem(title, body, 'push');
   if('Notification' in window && Notification.permission === 'granted'){
     try{
-      // Use the active service worker when available; this is more reliable than new Notification()
-      // on mobile browsers.
       navigator.serviceWorker?.ready.then(reg => {
         reg.showNotification(title, {
           body: body,
           icon: './icon-192.png',
           badge: './icon-192.png',
-          tag: 'khadamati-message',
+          tag: eventKey ? ('khadamati-' + eventKey).slice(0,120) : 'khadamati-general',
           renotify: false,
-          data: { url: './index.html' }
+          data: { url: './index.html', eventKey: eventKey || '' }
         });
       }).catch(()=>{
         try{ new Notification(title, {body, icon:'./icon-192.png'}); }catch(e){}
       });
     }catch(e){}
   }
+  return true;
 }
 
 async function requestNotificationPermission(){
@@ -1782,9 +1816,7 @@ async function requestNotificationPermission(){
       return true;
     }
     showToast(t('notifDenied'));
-  }catch(e){
-    showToast(t('notifDenied'));
-  }
+  }catch(e){ showToast(t('notifDenied')); }
   return false;
 }
 
@@ -1793,8 +1825,8 @@ function startNotificationListeners(){
   const user = auth.currentUser;
   if(!user) return;
 
-  if(notifUnsubscribe){ notifUnsubscribe(); notifUnsubscribe = null; }
-  if(messageNotifUnsubscribe){ messageNotifUnsubscribe(); messageNotifUnsubscribe = null; }
+  if(notifUnsubscribe){ try{ notifUnsubscribe(); }catch(e){} notifUnsubscribe=null; }
+  if(messageNotifUnsubscribe){ try{ messageNotifUnsubscribe(); }catch(e){} messageNotifUnsubscribe=null; }
   messageSubUnsubscribes.forEach(unsub=>{ try{ unsub(); }catch(e){} });
   messageSubUnsubscribes.clear();
 
@@ -1803,19 +1835,27 @@ function startNotificationListeners(){
   knownBookingStatuses = {};
   knownMessageIds = new Set();
 
-  // حفظ الرسائل التي سبق التعامل معها حتى لا تعود إشعاراتها بعد إعادة فتح PWA.
-  try{
-    const stored = JSON.parse(localStorage.getItem('khadamati_notified_messages_' + user.uid) || '[]');
-    stored.forEach(id => knownMessageIds.add(id));
-  }catch(e){}
+  // هذه اللحظة هي نقطة البداية. أي رسالة/حجز أقدم منها لا يولّد إشعارًا.
+  notificationBaselineAt = Date.now();
+
+  const storedMessages = readJson(NOTIF_MSG_KEY(user.uid), {});
+  Object.keys(storedMessages).forEach(id=>knownMessageIds.add(id));
+
+  const storedBookings = readJson(NOTIF_BOOKING_KEY(user.uid), {});
 
   const saveKnownMessageIds = ()=>{
-    try{
-      localStorage.setItem('khadamati_notified_messages_' + user.uid, JSON.stringify(Array.from(knownMessageIds).slice(-500)));
-    }catch(e){}
+    const map={};
+    knownMessageIds.forEach(id=>{ map[id]=Date.now(); });
+    writeJson(NOTIF_MSG_KEY(user.uid), pruneMap(map, 1000));
   };
+  const saveBookingEvent = (id,status)=>{
+    const map=readJson(NOTIF_BOOKING_KEY(user.uid), {});
+    map[id+'|'+status]=Date.now();
+    writeJson(NOTIF_BOOKING_KEY(user.uid), pruneMap(map, 500));
+  };
+  const bookingEventSeen = (id,status)=>!!storedBookings[id+'|'+status] || hasSeenNotification('booking:'+id+':'+status);
 
-  // استعادة عدد الرسائل غير المقروءة من Firestore بدل الاعتماد على الذاكرة فقط.
+  // استعادة عداد الرسائل غير المقروءة من Firestore.
   db.collection('conversations').where('participants','array-contains',user.uid).limit(100).get().then(snap=>{
     let total=0;
     snap.forEach(doc=>{ total += Number((doc.data().unreadCountBy||{})[user.uid]||0); });
@@ -1823,46 +1863,56 @@ function startNotificationListeners(){
     setBadge('msg-badge', total);
   }).catch(()=>{});
 
+  // ================= Booking notifications =================
   const bookingField = isCraftsmanUser ? 'craftsmanId' : 'customerId';
-
   notifUnsubscribe = db.collection('bookings').where(bookingField, '==', user.uid)
     .onSnapshot(snapshot=>{
       snapshot.docChanges().forEach(change=>{
-        const d = change.doc.data();
+        const d=change.doc.data()||{};
+        const bookingId=change.doc.id;
+        const createdMs=d.createdAt?.toMillis?.() || 0;
+        const updatedMs=d.updatedAt?.toMillis?.() || createdMs;
 
         if(notifFirstLoad){
-          knownBookingStatuses[change.doc.id] = d.status;
+          knownBookingStatuses[bookingId]=d.status || 'pending';
           return;
         }
 
-        if(change.type === 'added' && isCraftsmanUser){
-          const body = `${d.customerEmail || ''} — ${d.address || ''}`;
-          showLocalNotification(t('newOrderTitle'), body || t('newOrderNotif'));
+        // لا تعتبر الحجوزات القديمة التي ظهرت بسبب أول مزامنة "جديدة".
+        if(change.type==='added'){
+          if(isCraftsmanUser && createdMs >= notificationBaselineAt && !bookingEventSeen(bookingId,'new')){
+            const body=`${d.customerName || d.customerEmail || ''}${d.address ? ' — '+d.address : ''}`;
+            const key='booking:'+bookingId+':new';
+            if(showLocalNotification(t('newOrderTitle'), body || t('newOrderNotif'), key)) saveBookingEvent(bookingId,'new');
+          }
+          knownBookingStatuses[bookingId]=d.status || 'pending';
+          return;
         }
 
-        if(change.type === 'modified'){
-          const prevStatus = knownBookingStatuses[change.doc.id];
-          if(prevStatus !== d.status){
-            const statusText = statusLabels[currentLang]?.[d.status] || d.status || '';
-            if(isCraftsmanUser){
-              showLocalNotification(t('orderUpdatedTitle'), statusText);
-            }else{
-              showLocalNotification(t('orderUpdatedTitle'),
-                t('statusChangedNotif') + ': ' + statusText);
+        if(change.type==='modified'){
+          const prevStatus=knownBookingStatuses[bookingId];
+          const newStatus=d.status || '';
+          knownBookingStatuses[bookingId]=newStatus;
+          if(prevStatus && prevStatus!==newStatus && updatedMs >= notificationBaselineAt){
+            const key='booking:'+bookingId+':status:'+newStatus;
+            if(!bookingEventSeen(bookingId,'status:'+newStatus)){
+              const statusText=statusLabels[currentLang]?.[newStatus] || newStatus;
+              const title=t('orderUpdatedTitle');
+              const body=isCraftsmanUser ? statusText : (t('statusChangedNotif') + ': ' + statusText);
+              if(showLocalNotification(title, body, key)) saveBookingEvent(bookingId,'status:'+newStatus);
             }
           }
-          knownBookingStatuses[change.doc.id] = d.status;
         }
       });
-      notifFirstLoad = false;
-    }, error=>console.log('تعذر الاستماع للطلبات:', error));
+      notifFirstLoad=false;
+    }, error=>console.log('تعذر الاستماع للطلبات:',error));
 
-  // Watch all conversations in which the current user participates.
+  // ================= Message notifications =================
   messageNotifUnsubscribe = db.collection('conversations')
-    .where('participants', 'array-contains', user.uid)
+    .where('participants','array-contains',user.uid)
     .onSnapshot(convSnap=>{
       convSnap.docChanges().forEach(convChange=>{
-        if(convChange.type !== 'added' && convChange.type !== 'modified') return;
+        if(convChange.type!=='added' && convChange.type!=='modified') return;
         const convDoc=convChange.doc;
         const convId=convDoc.id;
         const cd=convDoc.data()||{};
@@ -1872,33 +1922,52 @@ function startNotificationListeners(){
 
         let firstSnapshot=true;
         const unsubMessages=db.collection('conversations').doc(convId).collection('messages')
-          .orderBy('createdAt','desc').limit(30)
+          .orderBy('createdAt','desc').limit(50)
           .onSnapshot(msgSnap=>{
             msgSnap.docChanges().forEach(change=>{
               if(change.type!=='added') return;
               const m=change.doc.data()||{};
+              const messageId=change.doc.id;
+              const uniqueId=convId+'_'+messageId;
+              const createdMs=m.createdAt?.toMillis?.() || 0;
+
               if(!m.senderId || m.senderId===user.uid) return;
-              const uniqueId=convId+'_'+change.doc.id;
               if(knownMessageIds.has(uniqueId)) return;
-              knownMessageIds.add(uniqueId);
-              if(firstSnapshot || !change.doc.metadata.hasPendingWrites && msgSnap.metadata.fromCache){
+
+              // في أول snapshot: علّم الموجود مسبقًا كمشاهد فقط، ولا تعرض إشعارًا.
+              if(firstSnapshot || createdMs < notificationBaselineAt || (msgSnap.metadata?.fromCache && !change.doc.metadata?.hasPendingWrites)){
+                knownMessageIds.add(uniqueId);
                 return;
               }
-              saveKnownMessageIds();
+
+              knownMessageIds.add(uniqueId);
+
+              // إذا كانت الرسالة مقروءة بالفعل، لا نعيد إشعارها.
+              const seenBy=Array.isArray(m.seenBy)?m.seenBy:[];
+              if(seenBy.includes(user.uid)){
+                saveKnownMessageIds();
+                return;
+              }
+
               const openNow=chatConvId===convId && chatOverlay.classList.contains('show');
               if(openNow){
                 db.collection('conversations').doc(convId).set({['unreadCountBy.'+user.uid]:0},{merge:true}).catch(()=>{});
-                db.collection('conversations').doc(convId).collection('messages').doc(change.doc.id).update({
+                db.collection('conversations').doc(convId).collection('messages').doc(messageId).update({
                   seenBy:firebase.firestore.FieldValue.arrayUnion(user.uid),
                   deliveredTo:firebase.firestore.FieldValue.arrayUnion(user.uid)
                 }).catch(()=>{});
+                saveKnownMessageIds();
                 return;
               }
-              unreadMessages++;
-              setBadge('msg-badge',unreadMessages);
+
               const senderLabel=(m.senderName||otherName||'').trim();
               const body=(m.text||'').trim()||t('newMessageNotif');
-              showLocalNotification(senderLabel?`${t('messageFrom')} ${senderLabel}`:t('newMessageNotif'),body);
+              const eventKey='message:'+uniqueId;
+              if(showLocalNotification(senderLabel?`${t('messageFrom')} ${senderLabel}`:t('newMessageNotif'), body, eventKey)){
+                unreadMessages++;
+                setBadge('msg-badge',unreadMessages);
+              }
+              saveKnownMessageIds();
             });
             firstSnapshot=false;
           },()=>{});
@@ -2273,34 +2342,16 @@ if('serviceWorker' in navigator){
 </script>
 
 <script>
-// ===== PATCH: منع إشعارات الرسائل القديمة + تجهيز حالة القراءة =====
+// ===== PATCH: تنظيف حماية الإشعارات القديمة والتوافق مع النسخ السابقة =====
 (function(){
-  const KEY = "khadamati_notification_seen_v1";
-
-  window.khadamatiNotifyGuard = {
-    shouldNotify(id){
-      if(!id) return true;
-      const seen = JSON.parse(localStorage.getItem(KEY)||"{}");
-      if(seen[id]) return false;
-      seen[id]=Date.now();
-      localStorage.setItem(KEY, JSON.stringify(seen));
-      return true;
-    },
-    markConversationRead(id){
-      const seen = JSON.parse(localStorage.getItem(KEY)||"{}");
-      if(id) seen[id]=Date.now();
-      localStorage.setItem(KEY, JSON.stringify(seen));
-    }
-  };
-
-  // تنظيف البيانات القديمة حتى لا تكبر localStorage
   try{
-    const seen=JSON.parse(localStorage.getItem(KEY)||"{}");
+    // لا نحذف سجل الحماية الجديد. نحذف فقط السجل القديم المحدود زمنيًا.
+    const oldKey='khadamati_notification_seen_v1';
+    const old=JSON.parse(localStorage.getItem(oldKey)||'{}');
     const now=Date.now();
-    Object.keys(seen).forEach(k=>{ if(now-seen[k]>2592000000) delete seen[k]; });
-    localStorage.setItem(KEY,JSON.stringify(seen));
+    Object.keys(old).forEach(k=>{ if(now-Number(old[k]||0)>2592000000) delete old[k]; });
+    if(Object.keys(old).length) localStorage.setItem(oldKey,JSON.stringify(old));
   }catch(e){}
 })();
-</script>
-</body>
+</script>\n</body>
 </html>
