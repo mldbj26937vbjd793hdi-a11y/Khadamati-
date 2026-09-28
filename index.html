@@ -456,7 +456,7 @@ nav button .n-ic{display:block;font-size:19px;margin-bottom:2px;}
 <div class="overlay" id="chat-overlay">
   <div class="modal chat-modal">
     <button class="modal-close" id="chat-close">×</button>
-    <div class="chat-header"><h3 id="chat-title"></h3><div class="chat-subtitle" id="chat-subtitle">محادثة</div></div>
+    <div class="chat-header"><h3 id="chat-title"></h3><div class="chat-subtitle" id="chat-subtitle" data-i18n="chatSubtitle">محادثة</div></div>
     <div class="chat-messages" id="chat-messages"></div>
     <div class="chat-input-row" style="align-items:flex-end;">
       <textarea id="chat-input" data-i18n-ph="typeMessage" placeholder="اكتب رسالة..." rows="1" inputmode="text" autocomplete="off" autocorrect="on" spellcheck="true"></textarea>
@@ -468,14 +468,14 @@ nav button .n-ic{display:block;font-size:19px;margin-bottom:2px;}
 <!-- Customer name required after login when no name is saved -->
 <div class="overlay" id="customer-name-overlay">
   <div class="modal" style="max-width:430px;text-align:center;">
-    <h3>أدخل اسمك</h3>
+    <h3 data-i18n="enterName">أدخل اسمك</h3>
     <p class="muted">اكتب اسمك حتى يظهر بشكل صحيح في الرسائل والإشعارات.</p>
     <div class="field" style="text-align:right;">
-      <label>الاسم الكامل</label>
+      <label data-i18n="fullNameLabel">الاسم الكامل</label>
       <input type="text" id="customer-required-name" maxlength="60" placeholder="مثلاً: محمد العلوي">
     </div>
     <div class="field-error" id="customer-name-error"></div>
-    <button id="save-customer-name">حفظ الاسم</button>
+    <button id="save-customer-name" data-i18n="saveName">حفظ الاسم</button>
   </div>
 </div>
 
@@ -607,6 +607,20 @@ const translations = {
   enablePush:{ar:"🔔 تفعيل إشعارات الرسائل والطلبات",fr:"🔔 Activer les notifications des messages et commandes",en:"🔔 Enable message and order notifications"},
   pushEnabled:{ar:"تم تفعيل إشعارات الرسائل والطلبات ✅",fr:"Notifications des messages et commandes activées ✅",en:"Message and order notifications enabled ✅"},
   messageFrom:{ar:"رسالة من",fr:"Message de",en:"Message from"},
+  chatSubtitle:{ar:"محادثة",fr:"Conversation",en:"Conversation"},
+  editedLabel:{ar:"(معدلة)",fr:"(modifiée)",en:"(edited)"},
+  deletedMessage:{ar:"🗑️ تم حذف هذه الرسالة",fr:"🗑️ Message supprimé",en:"🗑️ Message deleted"},
+  editMessage:{ar:"✏️ تعديل",fr:"✏️ Modifier",en:"✏️ Edit"},
+  deleteMessage:{ar:"🗑️ حذف",fr:"🗑️ Supprimer",en:"🗑️ Delete"},
+  loginRequired:{ar:"يرجى تسجيل الدخول",fr:"Veuillez vous connecter",en:"Please log in"},
+  noMessages:{ar:"لا توجد رسائل بعد",fr:"Aucun message",en:"No messages yet"},
+  sending:{ar:"⏳ إرسال...",fr:"⏳ Envoi...",en:"⏳ Sending..."},
+  sentOk:{ar:"تم إرسال الرسالة ✅",fr:"Message envoyé ✅",en:"Message sent ✅"},
+  markRead:{ar:"مقروءة",fr:"Lu",en:"Read"},
+  markUnread:{ar:"غير مقروءة",fr:"Non lu",en:"Unread"},
+  enterName:{ar:"أدخل اسمك",fr:"Entrez votre nom",en:"Enter your name"},
+  saveName:{ar:"حفظ الاسم",fr:"Enregistrer le nom",en:"Save name"},
+  fullNameLabel:{ar:"الاسم الكامل",fr:"Nom complet",en:"Full name"},
   newOrderTitle:{ar:"طلب خدمة جديد",fr:"Nouvelle commande",en:"New service order"},
   orderUpdatedTitle:{ar:"تحديث الطلب",fr:"Mise à jour de la commande",en:"Order updated"},
   logout:{ar:"تسجيل الخروج",fr:"Déconnexion",en:"Log out"},
@@ -681,20 +695,46 @@ let currentLang = localStorage.getItem('lang') || 'ar';
 function applyLang(){
   document.documentElement.lang = currentLang;
   document.documentElement.dir = currentLang === 'ar' ? 'rtl' : 'ltr';
-  document.getElementById('lang-select').value = currentLang;
+  const langSelect=document.getElementById('lang-select');
+  if(langSelect) langSelect.value=currentLang;
+
   document.querySelectorAll('[data-i18n]').forEach(el=>{
-    const key = el.getAttribute('data-i18n');
-    if(translations[key]) el.textContent = translations[key][currentLang];
+    const key=el.getAttribute('data-i18n');
+    if(translations[key]) el.textContent=translations[key][currentLang];
   });
   document.querySelectorAll('[data-i18n-ph]').forEach(el=>{
-    const key = el.getAttribute('data-i18n-ph');
-    if(translations[key]) el.placeholder = translations[key][currentLang];
+    const key=el.getAttribute('data-i18n-ph');
+    if(translations[key]) el.placeholder=translations[key][currentLang];
   });
+
+  // عناصر ثابتة لم تكن مرتبطة سابقًا بمفتاح ترجمة.
+  const staticLabels={
+    'chat-subtitle':'chatSubtitle',
+    'save-customer-name':'saveName'
+  };
+  Object.keys(staticLabels).forEach(id=>{
+    const el=document.getElementById(id), key=staticLabels[id];
+    if(el && translations[key]) el.textContent=translations[key][currentLang];
+  });
+  const chatInput=document.getElementById('chat-input');
+  if(chatInput) chatInput.placeholder=t('typeMessage');
+  const photoName=document.querySelector('#customer-name-overlay h3');
+  if(photoName) photoName.textContent=t('enterName');
+  const photoLabel=document.querySelector('#customer-name-overlay label');
+  if(photoLabel) photoLabel.textContent=t('fullNameLabel');
+  const notifBtn=document.getElementById('acc-notif-btn');
+  if(notifBtn) notifBtn.textContent=(('Notification' in window && Notification.permission==='granted') ? t('pushEnabled') : t('enablePush'));
+
   localStorage.setItem('lang', currentLang);
   renderCraftsmen();
   if(document.getElementById('page-orders').classList.contains('active')) loadOrders();
   if(document.getElementById('page-messages').classList.contains('active')) loadConversations();
+  if(chatConvId && chatOverlay.classList.contains('show')){
+    const sub=document.getElementById('chat-subtitle'); if(sub) sub.textContent=t('chatSubtitle');
+  }
+  renderNotificationCenter();
 }
+
 document.getElementById('lang-select').addEventListener('change', (e)=>{
   currentLang = e.target.value;
   applyLang();
@@ -708,7 +748,7 @@ function showPage(id){
   document.getElementById(id).classList.add('active');
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active', b.dataset.page===id));
   if(id === 'page-orders') loadOrders();
-  if(id === 'page-messages'){ unreadMessages = 0; setBadge('msg-badge', 0); loadConversations(); }
+  if(id === 'page-messages'){ loadConversations(); }
 }
 document.querySelectorAll('.nav-btn').forEach(btn=>{
   btn.addEventListener('click', ()=> showPage(btn.dataset.page));
@@ -902,13 +942,16 @@ document.getElementById('booking-confirm').addEventListener('click', async ()=>{
     await db.collection('bookings').add({
       customerId: user.uid,
       customerEmail: user.email,
+      customerName: await getCurrentUserDisplayName(),
       craftsmanId: bookingTarget ? (bookingTarget.id || null) : null,
       providerName: bookingTarget ? bookingTarget.name : '',
       providerCat: bookingTarget ? bookingTarget.cat : '',
+      craftsmanName: bookingTarget ? bookingTarget.name : '',
       address: addr,
       time: time,
       status: 'pending',
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     });
     bookingOverlay.classList.remove('show');
     showToast((currentLang==='fr'?'Commande confirmée — ':(currentLang==='en'?'Order confirmed — ':'تم تأكيد طلبك — ')) + time + ' ✅', true);
@@ -947,9 +990,10 @@ async function loadOrders(){
 
   try{
     if(isCraftsmanUser){
-      const snap = await db.collection('bookings').where('craftsmanId','==',user.uid).orderBy('createdAt','desc').limit(30).get();
+      const snap = await db.collection('bookings').where('craftsmanId','==',user.uid).limit(50).get();
       if(snap.empty){ list.innerHTML = `<div class="muted" style="text-align:center;padding:20px;">${currentLang==='fr'?'Aucune commande':(currentLang==='en'?'No orders':'لا توجد طلبات حتى الآن')}</div>`; return; }
-      list.innerHTML = snap.docs.map(doc=>{
+      const orderDocs = snap.docs.slice().sort((a,b)=>((b.data().createdAt?.toMillis?.()||0)-(a.data().createdAt?.toMillis?.()||0)));
+      list.innerHTML = orderDocs.map(doc=>{
         const d = doc.data();
         const status = d.status || 'pending';
         const nxt = dashNext[status];
@@ -963,9 +1007,10 @@ async function loadOrders(){
           </div>`;
       }).join('');
     } else {
-      const snap = await db.collection('bookings').where('customerId','==',user.uid).orderBy('createdAt','desc').limit(30).get();
+      const snap = await db.collection('bookings').where('customerId','==',user.uid).limit(50).get();
       if(snap.empty){ list.innerHTML = `<div class="muted" style="text-align:center;padding:20px;">${currentLang==='fr'?"Vous n'avez encore rien commandé":(currentLang==='en'?"You haven't placed any orders yet":'لم تقم بأي حجز بعد')}</div>`; return; }
-      list.innerHTML = snap.docs.map(doc=>{
+      const orderDocs = snap.docs.slice().sort((a,b)=>((b.data().createdAt?.toMillis?.()||0)-(a.data().createdAt?.toMillis?.()||0)));
+      list.innerHTML = orderDocs.map(doc=>{
         const d = doc.data();
         const status = d.status || 'pending';
         return `
@@ -985,7 +1030,7 @@ async function loadOrders(){
 
 async function updateBookingStatus(bookingId, newStatus){
   try{
-    await db.collection('bookings').doc(bookingId).update({ status: newStatus });
+    await db.collection('bookings').doc(bookingId).update({ status: newStatus, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
     showToast(currentLang==='fr'?'Statut mis à jour ✅':(currentLang==='en'?'Status updated ✅':'تم تحديث حالة الطلب ✅'), true);
     loadOrders();
     if(newStatus === 'done'){
@@ -1324,7 +1369,7 @@ async function getCurrentUserDisplayName(){
 async function loadConversations(){
   const list = document.getElementById('conversations-list');
   const user = auth.currentUser;
-  if(!user){ list.innerHTML = '<div class="muted" style="text-align:center;padding:20px;">يرجى تسجيل الدخول</div>'; return; }
+  if(!user){ list.innerHTML = '<div class="muted" style="text-align:center;padding:20px;">'+t('loginRequired')+'</div>'; return; }
   list.innerHTML = skeletonCards(3);
   try{
     const snap = await db.collection('conversations').where('participants','array-contains',user.uid).limit(50).get();
@@ -1332,13 +1377,14 @@ async function loadConversations(){
     const docs=snap.docs.slice().sort((a,b)=>{ const av=a.data().updatedAt?.toMillis?a.data().updatedAt.toMillis():0; const bv=b.data().updatedAt?.toMillis?b.data().updatedAt.toMillis():0; return bv-av; });
     list.innerHTML=docs.map(doc=>{
       const d=doc.data();
-      const otherLabel=user.uid===d.craftsmanId?(d.customerName||d.customerEmail||'Customer'):(d.craftsmanName||'');
+      const otherId=(d.participants||[]).find(id=>id!==user.uid)||'';
+      const names=d.participantNames||{};
+      const otherLabel=names[otherId] || (user.uid===d.craftsmanId?(d.customerName||d.customerEmail||''):(d.craftsmanName||d.customerName||d.customerEmail||'User'));
       const lastText=d.lastMessage||'';
       const unread=Number((d.unreadCountBy||{})[user.uid]||0);
       const time=d.lastMessageAt?.toDate?d.lastMessageAt.toDate().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):'';
       const safeName=escapeHtml(otherLabel).replace(/'/g,"\'");
-      const otherId=(d.participants||[]).find(id=>id!==user.uid)||'';
-      return `<div class="conv-item" onclick="openChat('${doc.id}','${safeName}','${otherId}')"><div class="avatar">${initials(otherLabel||'؟')}</div><div class="conv-body"><div style="display:flex;align-items:center;justify-content:space-between;gap:8px;"><div class="conv-name">${escapeHtml(otherLabel)}</div><span class="conv-time">${time}</span></div><div class="conv-meta"><div class="conv-last">${escapeHtml(lastText||'لا توجد رسائل بعد')}</div>${unread?`<span class="conv-unread">${unread>99?'99+':unread}</span>`:''}</div></div></div>`;
+      return `<div class="conv-item" onclick="openChat('${doc.id}','${safeName}','${otherId}')"><div class="avatar">${initials(otherLabel||'؟')}</div><div class="conv-body"><div style="display:flex;align-items:center;justify-content:space-between;gap:8px;"><div class="conv-name">${escapeHtml(otherLabel)}</div><span class="conv-time">${time}</span></div><div class="conv-meta"><div class="conv-last">${escapeHtml(lastText||t('noMessages'))}</div>${unread?`<span class="conv-unread">${unread>99?'99+':unread}</span>`:''}</div></div></div>`;
     }).join('');
   }catch(error){
     console.error('تعذر تحميل المحادثات:',error);
@@ -1377,6 +1423,7 @@ function openChat(convId, otherLabel, otherId=null){
   chatConvId = convId;
   chatOtherId = otherId || null;
   document.getElementById('chat-title').textContent = otherLabel;
+  document.getElementById('chat-subtitle').textContent = t('chatSubtitle');
   const currentUserForRead = auth.currentUser;
   if(currentUserForRead){
     db.collection('conversations').doc(convId).set(
@@ -1402,14 +1449,39 @@ function openChat(convId, otherLabel, otherId=null){
         const mine = user && m.senderId === user.uid;
         const text = m.deleted ? '🗑️ تم حذف هذه الرسالة' : (m.text || '');
         const safeText = escapeHtml(text).replace(/\n/g,'<br>');
-        const edited = m.edited && !m.deleted ? ' <span style="font-size:10px;opacity:.75;">(معدلة)</span>' : '';
+        const edited = m.edited && !m.deleted ? ' <span style="font-size:10px;opacity:.75;">'+t('editedLabel')+'</span>' : '';
+        const read = mine ? (Array.isArray(m.seenBy) && chatOtherId && m.seenBy.includes(chatOtherId) ? '✓✓' : '✓') : '';
         const actions = mine && !m.deleted ? `
           <div style="display:flex;gap:10px;margin-top:4px;font-size:11px;">
-            <button type="button" onclick="editChatMessage('${doc.id}')" style="background:none;color:inherit;padding:0;margin:0;width:auto;font-size:11px;">✏️ تعديل</button>
-            <button type="button" onclick="deleteChatMessage('${doc.id}')" style="background:none;color:inherit;padding:0;margin:0;width:auto;font-size:11px;">🗑️ حذف</button>
+            <button type="button" onclick="editChatMessage('${doc.id}')" style="background:none;color:inherit;padding:0;margin:0;width:auto;font-size:11px;">${t('editMessage')}</button>
+            <button type="button" onclick="deleteChatMessage('${doc.id}')" style="background:none;color:inherit;padding:0;margin:0;width:auto;font-size:11px;">${t('deleteMessage')}</button>
           </div>` : '';
-        return `<div class="bubble ${mine?'mine':'theirs'}" style="${m.deleted?'opacity:.72;font-style:italic;':''}">${safeText}${edited}${actions}</div>`;
+        const displayText=m.deleted ? t('deletedMessage') : (m.text || '');
+        const displaySafe=escapeHtml(displayText).replace(/\n/g,'<br>');
+        return `<div class="bubble ${mine?'mine':'theirs'}" style="${m.deleted?'opacity:.72;font-style:italic;':''}">${displaySafe}${edited}${mine?` <span style="font-size:10px;opacity:.8;display:inline-block;margin-inline-start:6px;">${read}</span>`:''}${actions}</div>`;
       }).join('');
+
+      // عند فتح المحادثة، سجّل الرسائل الواردة كمُسلّمة ومقروءة.
+      if(user){
+        const batch=db.batch();
+        let changed=0;
+        snap.docs.forEach(doc=>{
+          const m=doc.data()||{};
+          if(m.senderId && m.senderId!==user.uid){
+            const seen=Array.isArray(m.seenBy)?m.seenBy:[];
+            const delivered=Array.isArray(m.deliveredTo)?m.deliveredTo:[];
+            const ref=doc.ref;
+            if(!seen.includes(user.uid) || !delivered.includes(user.uid)){
+              batch.update(ref,{
+                seenBy: firebase.firestore.FieldValue.arrayUnion(user.uid),
+                deliveredTo: firebase.firestore.FieldValue.arrayUnion(user.uid)
+              });
+              changed++;
+            }
+          }
+        });
+        if(changed) batch.commit().catch(e=>console.warn('تعذر تحديث حالة القراءة:',e));
+      }
       box.scrollTop = box.scrollHeight;
     }, error=>{
       console.error('تعذر تحميل الرسائل:', error);
@@ -1455,7 +1527,7 @@ async function sendChatMessage(){
 
   const originalLabel = button.innerHTML;
   button.disabled = true;
-  button.innerHTML = '⏳ إرسال...';
+  button.innerHTML = t('sending');
 
   try{
     const senderName = (await getCurrentUserDisplayName()) || user.email || 'User';
@@ -1512,7 +1584,7 @@ async function sendChatMessage(){
     input.value = '';
     input.style.height = '48px';
     input.focus();
-    showToast('تم إرسال الرسالة ✅', true);
+    showToast(t('sentOk'), true);
 
   }catch(error){
     console.error('تعذر إرسال الرسالة:', error);
@@ -1743,6 +1815,14 @@ function startNotificationListeners(){
     }catch(e){}
   };
 
+  // استعادة عدد الرسائل غير المقروءة من Firestore بدل الاعتماد على الذاكرة فقط.
+  db.collection('conversations').where('participants','array-contains',user.uid).limit(100).get().then(snap=>{
+    let total=0;
+    snap.forEach(doc=>{ total += Number((doc.data().unreadCountBy||{})[user.uid]||0); });
+    unreadMessages=total;
+    setBadge('msg-badge', total);
+  }).catch(()=>{});
+
   const bookingField = isCraftsmanUser ? 'craftsmanId' : 'customerId';
 
   notifUnsubscribe = db.collection('bookings').where(bookingField, '==', user.uid)
@@ -1777,64 +1857,54 @@ function startNotificationListeners(){
       notifFirstLoad = false;
     }, error=>console.log('تعذر الاستماع للطلبات:', error));
 
-  // Watch all conversations in which the current user participates, then watch their messages.
+  // Watch all conversations in which the current user participates.
   messageNotifUnsubscribe = db.collection('conversations')
     .where('participants', 'array-contains', user.uid)
     .onSnapshot(convSnap=>{
-      convSnap.docs.forEach(convDoc=>{
-        const convId = convDoc.id;
-        const cd = convDoc.data();
-        const otherName = user.uid === cd.craftsmanId
-          ? (cd.customerName || cd.customerEmail || '')
-          : (cd.craftsmanName || '');
-
+      convSnap.docChanges().forEach(convChange=>{
+        if(convChange.type !== 'added' && convChange.type !== 'modified') return;
+        const convDoc=convChange.doc;
+        const convId=convDoc.id;
+        const cd=convDoc.data()||{};
+        const otherId=(cd.participants||[]).find(id=>id!==user.uid)||'';
+        const otherName=(cd.participantNames||{})[otherId] || cd.craftsmanName || cd.customerName || cd.customerEmail || '';
         if(messageSubUnsubscribes.has(convId)) return;
-        let initialMessageLoad = true;
-        const unsubMessages = db.collection('conversations').doc(convId).collection('messages')
-          .orderBy('createdAt', 'desc').limit(20)
+
+        let firstSnapshot=true;
+        const unsubMessages=db.collection('conversations').doc(convId).collection('messages')
+          .orderBy('createdAt','desc').limit(30)
           .onSnapshot(msgSnap=>{
             msgSnap.docChanges().forEach(change=>{
-              if(change.type !== 'added') return;
-              const m = change.doc.data();
-              if(!m || m.senderId === user.uid) return;
-
-              const uniqueId = convId + '_' + change.doc.id;
-
+              if(change.type!=='added') return;
+              const m=change.doc.data()||{};
+              if(!m.senderId || m.senderId===user.uid) return;
+              const uniqueId=convId+'_'+change.doc.id;
               if(knownMessageIds.has(uniqueId)) return;
-
-              // لكل محادثة تحميل أولي مستقل، حتى لا تتسبب سرعة Firestore في إشعارات قديمة.
-              if(initialMessageLoad){
-                knownMessageIds.add(uniqueId);
-                return;
-              }
-
               knownMessageIds.add(uniqueId);
-              saveKnownMessageIds();
-
-              // If this conversation is currently open, the message is already being read.
-              // Do not show an unread badge or notification for it.
-              if(chatConvId === convId && chatOverlay.classList.contains('show')){
-                db.collection('conversations').doc(convId).set(
-                  { ['unreadCountBy.'+user.uid]: 0 },
-                  {merge:true}
-                ).catch(()=>{});
+              if(firstSnapshot || !change.doc.metadata.hasPendingWrites && msgSnap.metadata.fromCache){
                 return;
               }
-
+              saveKnownMessageIds();
+              const openNow=chatConvId===convId && chatOverlay.classList.contains('show');
+              if(openNow){
+                db.collection('conversations').doc(convId).set({['unreadCountBy.'+user.uid]:0},{merge:true}).catch(()=>{});
+                db.collection('conversations').doc(convId).collection('messages').doc(change.doc.id).update({
+                  seenBy:firebase.firestore.FieldValue.arrayUnion(user.uid),
+                  deliveredTo:firebase.firestore.FieldValue.arrayUnion(user.uid)
+                }).catch(()=>{});
+                return;
+              }
               unreadMessages++;
-              setBadge('msg-badge', unreadMessages);
-
+              setBadge('msg-badge',unreadMessages);
               const senderLabel=(m.senderName||otherName||'').trim();
               const body=(m.text||'').trim()||t('newMessageNotif');
               showLocalNotification(senderLabel?`${t('messageFrom')} ${senderLabel}`:t('newMessageNotif'),body);
             });
-          }, ()=>{});
-        messageSubUnsubscribes.set(convId, unsubMessages);
-        // لا نعتبر المحادثة جاهزة للإشعارات إلا بعد أول snapshot فعلي.
-        setTimeout(()=>{ initialMessageLoad = false; }, 700);
+            firstSnapshot=false;
+          },()=>{});
+        messageSubUnsubscribes.set(convId,unsubMessages);
       });
-      messageNotifFirstLoad = false;
-    }, error=>console.log('تعذر الاستماع للمحادثات:', error));
+    }, error=>console.log('تعذر الاستماع للمحادثات:',error));
 }
 
 function stopNotificationListeners(){
@@ -2173,7 +2243,7 @@ updateOnlineStatus();
 
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./sw.js?v=5').then(reg=>{
+    navigator.serviceWorker.register('./sw.js?v=6').then(reg=>{
       reg.addEventListener('updatefound', ()=>{
         const newWorker = reg.installing;
         if(!newWorker) return;
