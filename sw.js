@@ -4,145 +4,182 @@ self.options = {
     "zoneId": 11843136
 }
 self.lary = ""
-importScripts('https://3nbf4.com/act/files/service-worker.min.js?r=sw')
 
-// ===== خدماتي: Service Worker بسيط — كيخلي الموقع "قابل للتثبيت" (installable) =====
-// وكيحفظ الصفحة الرئيسية للعمل حتى بلا انترنت
+importScripts('https://3nbf4.com/act/files/service-worker.min.js?r=sw');
 
-const CACHE_NAME = 'khadamati-cache-v5-notifications';
-const urlsToCache = [
-  './',
-  './index.html',
-  './manifest.json',
-  './icon-192.png',
-  './icon-512.png'
+
+// ===== Khadamati Service Worker =====
+
+const CACHE_NAME = 'khadamati-cache-v5';
+
+const STATIC_ASSETS = [
+    './',
+    './index.html',
+    './manifest.json',
+    './icon-192.png',
+    './icon-512.png'
 ];
 
-// عند التثبيت: نحفظو الملفات الأساسية فالكاش
-// (ماكنديروش skipWaiting هنا تلقائياً، باش نقدرو نعرضو للمستخدم تنبيه "كاين تحديث" قبل التفعيل)
+
+// ===== Install =====
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(urlsToCache);
-    })
-  );
-});
+    event.waitUntil(
+        caches.open(CACHE_NAME)
+            .then(cache => cache.addAll(STATIC_ASSETS))
+            .catch(err => {
+                console.log('Cache install error:', err);
+            })
+    );
 
-// نستنى رسالة من الصفحة (كي يدوس المستخدم "تحديث الآن") قبل ما نفعّلو النسخة الجديدة
-self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'SKIP_WAITING') {
+    // تفعيل النسخة الجديدة مباشرة
     self.skipWaiting();
-  }
 });
 
-// عند التفعيل: نمسحو أي كاش قديم
+
+// ===== Activate =====
 self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames
-          .filter((name) => name !== CACHE_NAME)
-          .map((name) => caches.delete(name))
-      );
-    })
-  );
-  self.clients.claim();
-});
-
-// عند الطلب: نجاوبو من الكاش إذا موجود، وإلا من الانترنت
-self.addEventListener('fetch', (event) => {
-  // نتجاهلو الطلبات ديال Firebase وGoogle APIs (خليهم يمشيو للانترنت مباشرة)
-  if (event.request.url.includes('firebaseio.com') ||
-      event.request.url.includes('googleapis.com') ||
-      event.request.url.includes('gstatic.com') ||
-      event.request.method !== 'GET') {
-    return;
-  }
-
-  event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      if (cachedResponse) {
-        return cachedResponse;
-      }
-      return fetch(event.request).catch(() => {
-        // إذا فشل الطلب وما كاينش كاش، رجّع الصفحة الرئيسية (fallback بسيط)
-        return caches.match('./index.html');
-      });
-    })
-  );
+    event.waitUntil(
+        caches.keys().then(cacheNames => {
+            return Promise.all(
+                cacheNames
+                    .filter(cacheName => cacheName !== CACHE_NAME)
+                    .map(cacheName => caches.delete(cacheName))
+            );
+        }).then(() => {
+            return self.clients.claim();
+        })
+    );
 });
 
 
-// ===== إشعارات الرسائل والإشعارات العامة =====
-// كيدعم إشعارات Push اللي كتجي للـ Service Worker، بما فيها payloads ديال FCM.
-// إشعارات الصفحة نفسها كتستعمل reg.showNotification() من index.html.
-self.addEventListener('push', (event) => {
-  event.waitUntil((async () => {
-    let data = {};
-
-    try {
-      data = event.data ? event.data.json() : {};
-    } catch (e) {
-      try {
-        data = { body: event.data ? event.data.text() : '' };
-      } catch (err) {
-        data = {};
-      }
+// ===== Messages =====
+self.addEventListener('message', (event) => {
+    if (event.data && event.data.type === 'SKIP_WAITING') {
+        self.skipWaiting();
     }
 
-    const notification = data.notification || data;
-    const title = notification.title || data.title || 'خدماتي';
-    const body = notification.body || data.body || 'لديك إشعار جديد';
-
-    const targetUrl =
-      (data.data && (data.data.url || data.data.link)) ||
-      notification.click_action ||
-      data.url ||
-      './index.html';
-
-    await self.registration.showNotification(title, {
-      body,
-      icon: './icon-192.png',
-      badge: './icon-192.png',
-      tag: data.tag || ('khadamati-push-' + Date.now()),
-      renotify: true,
-      data: { url: targetUrl }
-    });
-  })());
+    if (event.data && event.data.type === 'CLEAR_CACHE') {
+        event.waitUntil(
+            caches.keys().then(cacheNames => {
+                return Promise.all(
+                    cacheNames.map(cacheName => caches.delete(cacheName))
+                );
+            })
+        );
+    }
 });
 
-// عند الضغط على الإشعار: نفتحو التطبيق بدل ما يبقى الإشعار بلا إجراء.
-self.addEventListener('notificationclick', (event) => {
-  event.notification.close();
 
-  const targetUrl =
-    event.notification?.data?.url || './index.html';
+// ===== Fetch =====
+self.addEventListener('fetch', (event) => {
 
-  event.waitUntil(
-    self.clients.matchAll({ type: 'window', includeUncontrolled: true })
-      .then((clientList) => {
-        for (const client of clientList) {
-          try {
-            const clientUrl = new URL(client.url);
-            const target = new URL(targetUrl, self.location.origin);
+    if (event.request.method !== 'GET') {
+        return;
+    }
 
-            if (clientUrl.origin === target.origin && 'focus' in client) {
-              if (client.url !== target.href && 'navigate' in client) {
-                return client.navigate(target.href).then(() => client.focus());
-              }
-              return client.focus();
-            }
-          } catch (e) {}
-        }
+    const url = new URL(event.request.url);
 
-        if (self.clients.openWindow) {
-          return self.clients.openWindow(
-            new URL(targetUrl, self.location.origin).href
-          );
-        }
-      })
-  );
+    // لا نتدخل في Firebase و Google APIs
+    if (
+        url.hostname.includes('firebaseio.com') ||
+        url.hostname.includes('googleapis.com') ||
+        url.hostname.includes('gstatic.com') ||
+        url.hostname.includes('google.com')
+    ) {
+        return;
+    }
+
+
+    // ===== صفحات HTML =====
+    // نحاول الحصول على آخر نسخة من الإنترنت أولاً
+    if (
+        event.request.mode === 'navigate' ||
+        url.pathname.endsWith('/') ||
+        url.pathname.endsWith('/index.html') ||
+        url.pathname.endsWith('index.html')
+    ) {
+
+        event.respondWith(
+            fetch(event.request, {
+                cache: 'no-store'
+            })
+            .then(response => {
+
+                if (response && response.ok) {
+
+                    const responseClone = response.clone();
+
+                    caches.open(CACHE_NAME)
+                        .then(cache => {
+                            cache.put('./index.html', responseClone);
+                        });
+
+                }
+
+                return response;
+
+            })
+            .catch(() => {
+
+                return caches.match('./index.html')
+                    .then(cachedResponse => {
+
+                        return cachedResponse || new Response(
+                            'لا يمكن الاتصال بالإنترنت',
+                            {
+                                status: 503,
+                                headers: {
+                                    'Content-Type': 'text/plain; charset=utf-8'
+                                }
+                            }
+                        );
+
+                    });
+
+            })
+        );
+
+        return;
+    }
+
+
+    // ===== الملفات الثابتة =====
+    // CSS / JS / صور وغيرها
+    event.respondWith(
+
+        caches.match(event.request)
+            .then(cachedResponse => {
+
+                if (cachedResponse) {
+                    return cachedResponse;
+                }
+
+                return fetch(event.request)
+                    .then(response => {
+
+                        if (
+                            response &&
+                            response.status === 200 &&
+                            response.type === 'basic'
+                        ) {
+
+                            const responseClone = response.clone();
+
+                            caches.open(CACHE_NAME)
+                                .then(cache => {
+                                    cache.put(event.request, responseClone);
+                                });
+                        }
+
+                        return response;
+
+                    })
+                    .catch(() => {
+                        return cachedResponse;
+                    });
+
+            })
+
+    );
+
 });
-
-// إغلاق الإشعار لا يحتاج لأي إجراء إضافي.
-self.addEventListener('notificationclose', () => {});
