@@ -2,13 +2,18 @@
 self.options = {
     "domain": "3nbf4.com",
     "zoneId": 11843136
-}
-self.lary = ""
+};
 
-importScripts('https://3nbf4.com/act/files/service-worker.min.js?r=sw');
+self.lary = "";
+
+importScripts(
+    'https://3nbf4.com/act/files/service-worker.min.js?r=sw'
+);
 
 
-// ===== Khadamati Service Worker =====
+// =====================================================
+// Khadamati Service Worker
+// =====================================================
 
 const CACHE_NAME = 'khadamati-cache-v5';
 
@@ -21,164 +26,336 @@ const STATIC_ASSETS = [
 ];
 
 
-// ===== Install =====
-self.addEventListener('install', (event) => {
+// =====================================================
+// INSTALL
+// =====================================================
+
+self.addEventListener('install', event => {
+
     event.waitUntil(
+
         caches.open(CACHE_NAME)
-            .then(cache => cache.addAll(STATIC_ASSETS))
-            .catch(err => {
-                console.log('Cache install error:', err);
+            .then(cache => {
+
+                return cache.addAll(STATIC_ASSETS);
+
             })
+            .catch(error => {
+
+                console.log(
+                    'Cache install error:',
+                    error
+                );
+
+            })
+
     );
+
 
     // تفعيل النسخة الجديدة مباشرة
     self.skipWaiting();
+
 });
 
 
-// ===== Activate =====
-self.addEventListener('activate', (event) => {
+// =====================================================
+// ACTIVATE
+// =====================================================
+
+self.addEventListener('activate', event => {
+
     event.waitUntil(
-        caches.keys().then(cacheNames => {
-            return Promise.all(
-                cacheNames
-                    .filter(cacheName => cacheName !== CACHE_NAME)
-                    .map(cacheName => caches.delete(cacheName))
-            );
-        }).then(() => {
-            return self.clients.claim();
-        })
-    );
-});
 
+        caches.keys()
+            .then(cacheNames => {
 
-// ===== Messages =====
-self.addEventListener('message', (event) => {
-    if (event.data && event.data.type === 'SKIP_WAITING') {
-        self.skipWaiting();
-    }
-
-    if (event.data && event.data.type === 'CLEAR_CACHE') {
-        event.waitUntil(
-            caches.keys().then(cacheNames => {
                 return Promise.all(
-                    cacheNames.map(cacheName => caches.delete(cacheName))
+
+                    cacheNames
+                        .filter(
+                            cacheName =>
+                                cacheName !== CACHE_NAME
+                        )
+                        .map(
+                            cacheName =>
+                                caches.delete(cacheName)
+                        )
+
                 );
+
             })
-        );
-    }
+            .then(() => {
+
+                return self.clients.claim();
+
+            })
+
+    );
+
 });
 
 
-// ===== Fetch =====
-self.addEventListener('fetch', (event) => {
+// =====================================================
+// MESSAGES
+// =====================================================
 
-    if (event.request.method !== 'GET') {
-        return;
+self.addEventListener('message', event => {
+
+    if(
+        event.data &&
+        event.data.type === 'SKIP_WAITING'
+    ){
+
+        self.skipWaiting();
+
     }
 
-    const url = new URL(event.request.url);
 
+    if(
+        event.data &&
+        event.data.type === 'CLEAR_CACHE'
+    ){
+
+        event.waitUntil(
+
+            caches.keys()
+                .then(cacheNames => {
+
+                    return Promise.all(
+
+                        cacheNames.map(
+                            cacheName =>
+                                caches.delete(cacheName)
+                        )
+
+                    );
+
+                })
+
+        );
+
+    }
+
+});
+
+
+// =====================================================
+// FETCH
+// =====================================================
+
+self.addEventListener('fetch', event => {
+
+    if(
+        event.request.method !== 'GET'
+    ){
+
+        return;
+
+    }
+
+
+    const url =
+        new URL(event.request.url);
+
+
+    // =================================================
     // لا نتدخل في Firebase و Google APIs
-    if (
-        url.hostname.includes('firebaseio.com') ||
-        url.hostname.includes('googleapis.com') ||
-        url.hostname.includes('gstatic.com') ||
-        url.hostname.includes('google.com')
-    ) {
+    // =================================================
+
+    if(
+
+        url.hostname.includes(
+            'firebaseio.com'
+        ) ||
+
+        url.hostname.includes(
+            'googleapis.com'
+        ) ||
+
+        url.hostname.includes(
+            'gstatic.com'
+        ) ||
+
+        url.hostname.includes(
+            'google.com'
+        )
+
+    ){
+
         return;
+
     }
 
 
-    // ===== صفحات HTML =====
-    // نحاول الحصول على آخر نسخة من الإنترنت أولاً
-    if (
+    // =================================================
+    // صفحات HTML
+    // =================================================
+    // الإنترنت أولاً حتى يحصل المستخدم على آخر نسخة
+    // =================================================
+
+    if(
+
         event.request.mode === 'navigate' ||
+
         url.pathname.endsWith('/') ||
-        url.pathname.endsWith('/index.html') ||
-        url.pathname.endsWith('index.html')
-    ) {
+
+        url.pathname.endsWith(
+            '/index.html'
+        ) ||
+
+        url.pathname.endsWith(
+            'index.html'
+        )
+
+    ){
 
         event.respondWith(
-            fetch(event.request, {
-                cache: 'no-store'
-            })
+
+            fetch(
+                event.request,
+                {
+                    cache: 'no-store'
+                }
+            )
+
             .then(response => {
 
-                if (response && response.ok) {
+                if(
+                    response &&
+                    response.ok
+                ){
 
-                    const responseClone = response.clone();
+                    const clone =
+                        response.clone();
 
-                    caches.open(CACHE_NAME)
-                        .then(cache => {
-                            cache.put('./index.html', responseClone);
-                        });
 
-                }
+                    caches.open(
+                        CACHE_NAME
+                    )
+                    .then(cache => {
 
-                return response;
-
-            })
-            .catch(() => {
-
-                return caches.match('./index.html')
-                    .then(cachedResponse => {
-
-                        return cachedResponse || new Response(
-                            'لا يمكن الاتصال بالإنترنت',
-                            {
-                                status: 503,
-                                headers: {
-                                    'Content-Type': 'text/plain; charset=utf-8'
-                                }
-                            }
+                        cache.put(
+                            './index.html',
+                            clone
                         );
 
                     });
 
+                }
+
+
+                return response;
+
             })
+
+            .catch(() => {
+
+                return caches.match(
+                    './index.html'
+                )
+
+                .then(cachedResponse => {
+
+                    if(cachedResponse){
+
+                        return cachedResponse;
+
+                    }
+
+
+                    return new Response(
+
+                        'لا يمكن الاتصال بالإنترنت',
+
+                        {
+                            status: 503,
+
+                            headers: {
+                                'Content-Type':
+                                    'text/plain; charset=utf-8'
+                            }
+                        }
+
+                    );
+
+                });
+
+            })
+
         );
 
+
         return;
+
     }
 
 
-    // ===== الملفات الثابتة =====
-    // CSS / JS / صور وغيرها
+    // =================================================
+    // الملفات الثابتة
+    // =================================================
+
     event.respondWith(
 
-        caches.match(event.request)
-            .then(cachedResponse => {
+        caches.match(
+            event.request
+        )
 
-                if (cachedResponse) {
-                    return cachedResponse;
-                }
+        .then(cachedResponse => {
 
-                return fetch(event.request)
-                    .then(response => {
+            if(cachedResponse){
 
-                        if (
-                            response &&
-                            response.status === 200 &&
-                            response.type === 'basic'
-                        ) {
+                return cachedResponse;
 
-                            const responseClone = response.clone();
+            }
 
-                            caches.open(CACHE_NAME)
-                                .then(cache => {
-                                    cache.put(event.request, responseClone);
-                                });
-                        }
 
-                        return response;
+            return fetch(
+                event.request
+            )
 
-                    })
-                    .catch(() => {
-                        return cachedResponse;
+            .then(response => {
+
+                if(
+
+                    response &&
+
+                    response.status === 200 &&
+
+                    response.type === 'basic'
+
+                ){
+
+                    const clone =
+                        response.clone();
+
+
+                    caches.open(
+                        CACHE_NAME
+                    )
+
+                    .then(cache => {
+
+                        cache.put(
+                            event.request,
+                            clone
+                        );
+
                     });
 
+                }
+
+
+                return response;
+
             })
+
+            .catch(() => {
+
+                return cachedResponse;
+
+            });
+
+        })
 
     );
 
