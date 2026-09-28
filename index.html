@@ -121,7 +121,8 @@ nav button .n-ic{display:block;font-size:19px;margin-bottom:2px;}
 .bubble.mine{align-self:flex-end;background:var(--rust);color:#fff;border-bottom-left-radius:4px;}
 .bubble.theirs{align-self:flex-start;background:#F1EAD9;color:var(--ink);border-bottom-right-radius:4px;}
 .chat-input-row{display:flex;gap:8px;padding:12px;border-top:1px solid var(--line);flex-shrink:0;}
-.chat-input-row input{margin:0;flex:1;}
+.chat-input-row input,
+.chat-input-row textarea{margin:0;flex:1;min-width:0;resize:none;min-height:48px;max-height:110px;line-height:1.5;padding:12px;background:#fff;color:#222;-webkit-user-select:text;user-select:text;-webkit-appearance:none;}
 .chat-input-row button{width:auto;padding:0 18px;flex-shrink:0;}
 .chat-presence{font-size:11px;color:var(--ink-soft);margin-top:3px}
 .chat-typing{min-height:18px;padding:0 14px;color:var(--ink-soft);font-size:11px}
@@ -483,7 +484,7 @@ nav button .n-ic{display:block;font-size:19px;margin-bottom:2px;}
       <button class="chat-tool" id="chat-image-btn" title="إرسال صورة">📷</button>
       <input type="file" id="chat-image-input" accept="image/*" hidden>
       <button class="chat-tool" id="chat-record-btn" title="رسالة صوتية">🎤</button>
-      <input type="text" id="chat-input" data-i18n-ph="typeMessage" placeholder="اكتب رسالة...">
+      <textarea id="chat-input" data-i18n-ph="typeMessage" placeholder="اكتب رسالة..." rows="1" inputmode="text" autocomplete="off" autocorrect="on" spellcheck="true"></textarea>
       <button id="chat-send" data-i18n="send">إرسال</button>
     </div>
   </div>
@@ -563,11 +564,21 @@ async function registerForPushNotifications(){
 
 if(fcmMessaging){
   fcmMessaging.onMessage(payload=>{
-    const n = payload.notification || {};
-    const d = payload.data || {};
-    const title = n.title || d.title || t("newMessageNotif");
-    const body = n.body || d.body || "";
-    if(title || body) showLocalNotification(title, body);
+    const n=payload.notification||{};
+    const d=payload.data||{};
+    const title=n.title||d.title||t('newMessageNotif');
+    const body=n.body||d.body||'';
+    const messageId=d.messageId||d.message_id||'';
+    if(messageId&&auth.currentUser){
+      try{
+        const key='khadamati_fcm_'+auth.currentUser.uid;
+        const ids=JSON.parse(localStorage.getItem(key)||'[]');
+        if(ids.includes(messageId))return;
+        ids.push(messageId);
+        localStorage.setItem(key,JSON.stringify(ids.slice(-500)));
+      }catch(e){}
+    }
+    if(title||body)showLocalNotification(title,body);
   });
 }
 
@@ -1386,20 +1397,44 @@ async function loadConversations(){
 }
 
 async function findUsers(){
-  const q=document.getElementById('new-chat-user').value.trim().toLowerCase();
+  const input=document.getElementById('new-chat-user');
   const box=document.getElementById('new-chat-results');
-  if(!q){box.innerHTML='';return;}
+  const q=input.value.trim().toLowerCase();
   const me=auth.currentUser;
   if(!me){box.innerHTML='<div class="muted">سجل الدخول أولاً</div>';return;}
+  box.innerHTML='<div class="muted" style="padding:10px;text-align:center">جارٍ البحث...</div>';
   try{
-    const snap=await db.collection('users').limit(50).get();
-    const rows=snap.docs.filter(d=>d.id!==me.uid).map(d=>({id:d.id,...d.data()}))
-      .filter(u=>(u.email||'').toLowerCase().includes(q)||(u.name||'').toLowerCase().includes(q)||u.id.toLowerCase()===q).slice(0,10);
-    if(!rows.length){box.innerHTML='<div class="muted">لا يوجد مستخدم مطابق</div>';return;}
-    box.innerHTML=rows.map(u=>`<div class="new-chat-result"><span>${safeText(u.name||u.email||u.id)}</span><button onclick="startGeneralChat('${u.id}','${safeText(u.name||u.email||'مستخدم').replace(/'/g,"\\'")}')">فتح</button></div>`).join('');
-  }catch(e){box.innerHTML='<div class="muted">تعذر البحث</div>';}
+    const snap=await db.collection('users').limit(100).get();
+    let rows=snap.docs.filter(d=>d.id!==me.uid).map(d=>({id:d.id,...d.data()}));
+    if(q){
+      rows=rows.filter(u=>{
+        const email=String(u.email||'').toLowerCase();
+        const name=String(u.name||'').toLowerCase();
+        const uid=String(u.id||'').toLowerCase();
+        return email.includes(q)||name.includes(q)||uid===q;
+      });
+    }
+    rows=rows.slice(0,20);
+    if(!rows.length){box.innerHTML='<div class="muted" style="padding:10px;text-align:center">لا يوجد مستخدم مطابق. تأكد من البريد الإلكتروني أو UID.</div>';return;}
+    box.innerHTML=rows.map(u=>{
+      const name=u.name||u.email||u.id;
+      const safeName=safeText(name).replace(/'/g,"\\'");
+      return `<div class="new-chat-result">
+        <div style="display:flex;align-items:center;gap:8px;min-width:0">
+          <div class="avatar" style="width:36px;height:36px;flex-shrink:0">${initials(name)}</div>
+          <div style="min-width:0">
+            <div style="font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${safeText(name)}</div>
+            <div class="muted" style="font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${safeText(u.email||'')}</div>
+          </div>
+        </div>
+        <button onclick="startGeneralChat('${u.id}','${safeName}')">فتح</button>
+      </div>`;
+    }).join('');
+  }catch(e){
+    console.error('findUsers error:',e);
+    box.innerHTML='<div class="muted" style="padding:10px;text-align:center">تعذر البحث عن المستخدمين. تأكد من Firebase Rules.</div>';
+  }
 }
-
 async function startGeneralChat(otherId, otherName){
   const user=auth.currentUser;
   if(!user||!otherId||otherId===user.uid)return;
@@ -1481,13 +1516,15 @@ function openChat(convId,otherLabel,otherId){
   chatConvId=convId;
   document.getElementById('chat-title').textContent=otherLabel||'محادثة';
   document.getElementById('chat-input').value='';
+  document.getElementById('chat-input').style.height='auto';
   document.getElementById('chat-messages').innerHTML='';
   chatOverlay.classList.add('show');
   if(chatUnsubscribe)chatUnsubscribe();
   if(chatPresenceUnsubscribe)chatPresenceUnsubscribe();
   if(auth.currentUser) db.collection('conversations').doc(convId).set({['unreadCountBy.'+auth.currentUser.uid]:0},{merge:true}).catch(()=>{});
+  setTimeout(()=>{const input=document.getElementById('chat-input');if(input){input.focus();}},250);
   chatUnsubscribe=db.collection('conversations').doc(convId).collection('messages').orderBy('createdAt','asc').onSnapshot(async snap=>{
-    const user=auth.currentUser; if(!user)return;
+    const user=auth.currentUser;if(!user)return;
     document.getElementById('chat-messages').innerHTML=snap.docs.map(d=>renderChatMessage(d.id,d.data(),user)).join('');
     const box=document.getElementById('chat-messages');box.scrollTop=box.scrollHeight;
     await markMessagesRead(convId,snap,user);
@@ -1495,7 +1532,6 @@ function openChat(convId,otherLabel,otherId){
   listenChatPresence(otherId);
   listenTyping(convId,otherId);
 }
-
 async function sendChatMessage(){
   const input=document.getElementById('chat-input'), text=input.value.trim(), user=auth.currentUser;
   if(!text||!user||!chatConvId)return;
@@ -1517,24 +1553,31 @@ async function sendChatMessage(){
 
 async function editChatMessage(id){
   const user=auth.currentUser;if(!user||!chatConvId)return;
-  const ref=db.collection('conversations').doc(chatConvId).collection('messages').doc(id);
-  const snap=await ref.get();const m=snap.data()||{};
-  if(m.senderId!==user.uid||m.deleted||m.type!=='text')return;
-  const value=prompt('تعديل الرسالة',m.text||'');if(value===null)return;
-  const text=value.trim();if(!text)return;
-  await ref.update({text,edited:true,editedAt:firebase.firestore.FieldValue.serverTimestamp()});
-  await db.collection('conversations').doc(chatConvId).set({lastMessage:text,lastMessageAt:firebase.firestore.FieldValue.serverTimestamp(),updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});
+  try{
+    const ref=db.collection('conversations').doc(chatConvId).collection('messages').doc(id);
+    const snap=await ref.get();if(!snap.exists)return;
+    const m=snap.data()||{};
+    if(m.senderId!==user.uid||m.deleted||m.type!=='text')return;
+    const value=prompt('تعديل الرسالة',m.text||'');if(value===null)return;
+    const text=value.trim();if(!text)return;
+    await ref.update({text,edited:true,editedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedAt:firebase.firestore.FieldValue.serverTimestamp()});
+    await db.collection('conversations').doc(chatConvId).set({lastMessage:text,lastMessageAt:firebase.firestore.FieldValue.serverTimestamp(),updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});
+    showToast('تم تعديل الرسالة ✅',true);
+  }catch(e){console.error('Edit message error:',e);showToast('تعذر تعديل الرسالة. تأكد من Firestore Rules.');}
 }
 
 async function deleteChatMessage(id){
   const user=auth.currentUser;if(!user||!chatConvId)return;
-  const ref=db.collection('conversations').doc(chatConvId).collection('messages').doc(id);
-  const snap=await ref.get();const m=snap.data()||{};
-  if(m.senderId!==user.uid)return;
-  if(!confirm('حذف هذه الرسالة؟'))return;
-  await ref.update({deleted:true,text:'',mediaUrl:'',deletedAt:firebase.firestore.FieldValue.serverTimestamp()});
+  try{
+    const ref=db.collection('conversations').doc(chatConvId).collection('messages').doc(id);
+    const snap=await ref.get();if(!snap.exists)return;
+    const m=snap.data()||{};
+    if(m.senderId!==user.uid)return;
+    if(!confirm('هل تريد حذف هذه الرسالة؟'))return;
+    await ref.update({deleted:true,text:'',mediaUrl:'',deletedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedAt:firebase.firestore.FieldValue.serverTimestamp()});
+    showToast('تم حذف الرسالة ✅',true);
+  }catch(e){console.error('Delete message error:',e);showToast('تعذر حذف الرسالة. تأكد من Firestore Rules.');}
 }
-
 async function uploadChatImage(file){
   const user=auth.currentUser;if(!file||!user||!chatConvId)return;
   try{
@@ -1551,29 +1594,50 @@ async function uploadChatImage(file){
 }
 
 async function recordVoice(){
-  const user=auth.currentUser;if(!user||!chatConvId)return;
-  if(!navigator.mediaDevices?.getUserMedia){showToast('التسجيل الصوتي غير مدعوم هنا');return;}
+  const user=auth.currentUser;if(!user||!chatConvId){showToast('افتح محادثة أولاً');return;}
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){showToast('المتصفح لا يدعم التسجيل الصوتي هنا');return;}
   try{
     const stream=await navigator.mediaDevices.getUserMedia({audio:true});
     recordingChunks=[];
-    recording=new MediaRecorder(stream);
-    recording.ondataavailable=e=>{if(e.data.size)recordingChunks.push(e.data);};
+    let mimeType='';
+    const formats=['audio/webm;codecs=opus','audio/webm','audio/mp4','audio/ogg;codecs=opus'];
+    for(const format of formats){
+      if(window.MediaRecorder&&MediaRecorder.isTypeSupported&&MediaRecorder.isTypeSupported(format)){mimeType=format;break;}
+    }
+    recording=mimeType?new MediaRecorder(stream,{mimeType}):new MediaRecorder(stream);
+    recording.ondataavailable=e=>{if(e.data&&e.data.size)recordingChunks.push(e.data);};
+    recording.onerror=e=>{console.error('MediaRecorder error:',e);stream.getTracks().forEach(t=>t.stop());recording=null;showToast('حدث خطأ أثناء التسجيل');};
     recording.onstop=async()=>{
       stream.getTracks().forEach(t=>t.stop());
-      const blob=new Blob(recordingChunks,{type:'audio/webm'});
+      const blobType=mimeType||'audio/webm';
+      const blob=new Blob(recordingChunks,{type:blobType});
+      recording=null;
+      if(!blob.size){showToast('لم يتم تسجيل صوت');return;}
       try{
-        const ref=firebase.storage().ref(`chat-media/${chatConvId}/voice_${Date.now()}.webm`);
-        await ref.put(blob);const url=await ref.getDownloadURL();
-        const convRef=db.collection('conversations').doc(chatConvId), conv=(await convRef.get()).data()||{};
+        const extension=blobType.includes('mp4')?'mp4':blobType.includes('ogg')?'ogg':'webm';
+        const ref=firebase.storage().ref(`chat-media/${chatConvId}/voice_${Date.now()}.${extension}`);
+        showToast('جارٍ رفع الرسالة الصوتية...',true);
+        await ref.put(blob,{contentType:blobType});
+        const url=await ref.getDownloadURL();
+        const convRef=db.collection('conversations').doc(chatConvId);
+        const conv=(await convRef.get()).data()||{};
         const recipientId=(conv.participants||[]).find(x=>x!==user.uid)||null;
-        await convRef.collection('messages').add({senderId:user.uid,senderName:await getCurrentUserDisplayName(),type:'audio',mediaUrl:url,text:'🎤 رسالة صوتية',seenBy:[],deliveredTo:[],createdAt:firebase.firestore.FieldValue.serverTimestamp()});
-        if(recipientId)await convRef.set({lastMessage:'🎤 رسالة صوتية',lastMessageAt:firebase.firestore.FieldValue.serverTimestamp(),updatedAt:firebase.firestore.FieldValue.serverTimestamp(),['unreadCountBy.'+recipientId]:firebase.firestore.FieldValue.increment(1)},{merge:true});
-      }catch(e){console.error(e);showToast('تعذر حفظ الرسالة الصوتية.');}
+        const senderName=await getCurrentUserDisplayName()||user.email||'User';
+        await convRef.collection('messages').add({senderId:user.uid,senderName,type:'audio',mediaUrl:url,text:'🎤 رسالة صوتية',seenBy:[],deliveredTo:[],edited:false,deleted:false,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+        const upd={lastMessage:'🎤 رسالة صوتية',lastMessageSenderId:user.uid,lastMessageSenderName:senderName,lastMessageAt:firebase.firestore.FieldValue.serverTimestamp(),updatedAt:firebase.firestore.FieldValue.serverTimestamp()};
+        if(recipientId)upd['unreadCountBy.'+recipientId]=firebase.firestore.FieldValue.increment(1);
+        await convRef.set(upd,{merge:true});
+        showToast('تم إرسال الرسالة الصوتية ✅',true);
+      }catch(e){console.error('Voice upload error:',e);showToast('تعذر إرسال التسجيل. تأكد من Firebase Storage Rules.');}
     };
-    recording.start();showToast('🎤 التسجيل جارٍ... اضغط الزر مرة أخرى للإيقاف',true);
-  }catch(e){showToast('اسمح للتطبيق باستخدام الميكروفون');}
+    recording.start();
+    showToast('🎤 التسجيل جارٍ... اضغط الزر مرة أخرى للإيقاف',true);
+  }catch(e){
+    console.error('Microphone error:',e);
+    if(e.name==='NotAllowedError')showToast('يجب السماح للتطبيق باستخدام الميكروفون من إعدادات الهاتف');
+    else showToast('تعذر تشغيل الميكروفون');
+  }
 }
-
 document.getElementById('chat-close').addEventListener('click',()=>{
   setTyping(false);chatOverlay.classList.remove('show');
   if(chatUnsubscribe){chatUnsubscribe();chatUnsubscribe=null;}
@@ -1584,14 +1648,23 @@ chatOverlay.addEventListener('click',e=>{
   if(e.target===chatOverlay)document.getElementById('chat-close').click();
 });
 document.getElementById('chat-send').addEventListener('click',sendChatMessage);
-document.getElementById('chat-input').addEventListener('keydown',e=>{if(e.key==='Enter')sendChatMessage();});
-document.getElementById('chat-input').addEventListener('input',()=>{
-  setTyping(true);clearTimeout(typingTimer);typingTimer=setTimeout(()=>setTyping(false),1800);
+document.getElementById('chat-input').addEventListener('keydown',e=>{
+  if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendChatMessage();}
+});
+document.getElementById('chat-input').addEventListener('input',function(){
+  this.style.height='auto';
+  this.style.height=Math.min(this.scrollHeight,110)+'px';
+  setTyping(true);
+  clearTimeout(typingTimer);
+  typingTimer=setTimeout(()=>setTyping(false),1800);
 });
 document.getElementById('chat-image-btn').addEventListener('click',()=>document.getElementById('chat-image-input').click());
 document.getElementById('chat-image-input').addEventListener('change',e=>{const f=e.target.files?.[0];if(f)uploadChatImage(f);e.target.value='';});
-document.getElementById('chat-record-btn').addEventListener('click',()=>{
-  if(recording&&recording.state==='recording')recording.stop();else recordVoice();
+document.getElementById('chat-record-btn').addEventListener('click',async ()=>{
+  const btn=document.getElementById('chat-record-btn');
+  if(recording&&recording.state==='recording'){recording.stop();btn.textContent='🎤';return;}
+  await recordVoice();
+  if(recording&&recording.state==='recording')btn.textContent='⏹️';
 });
 document.getElementById('new-chat-btn').addEventListener('click',findUsers);
 document.getElementById('new-chat-user').addEventListener('keydown',e=>{if(e.key==='Enter')findUsers();});
@@ -1661,26 +1734,18 @@ function openNotificationCenter(){
 }
 
 function showLocalNotification(title, body){
-  addNotificationItem(title, body, 'push');
-  if('Notification' in window && Notification.permission === 'granted'){
-    try{
-      // Use the active service worker when available; this is more reliable than new Notification()
-      // on mobile browsers.
-      navigator.serviceWorker?.ready.then(reg => {
-        reg.showNotification(title, {
-          body: body,
-          icon: './icon-192.png',
-          badge: './icon-192.png',
-          tag: 'khadamati-' + Date.now(),
-          data: { url: './index.html' }
-        });
-      }).catch(()=>{
-        try{ new Notification(title, {body, icon:'./icon-192.png'}); }catch(e){}
-      });
-    }catch(e){}
+  const key='khadamati_notice_'+String(title||'')+'_'+String(body||'');
+  const now=Date.now();
+  try{
+    const last=Number(sessionStorage.getItem(key)||0);
+    if(last&&now-last<5000)return;
+    sessionStorage.setItem(key,String(now));
+  }catch(e){}
+  addNotificationItem(title,body,'push');
+  if('Notification' in window&&Notification.permission==='granted'){
+    navigator.serviceWorker?.ready.then(reg=>reg.showNotification(title,{body,icon:'./icon-192.png',badge:'./icon-192.png',tag:'khadamati-live',renotify:false,data:{url:'./index.html'}})).catch(()=>{try{new Notification(title,{body,icon:'./icon-192.png'});}catch(e){}});
   }
 }
-
 async function requestNotificationPermission(){
   if(!('Notification' in window)){
     showToast(currentLang==='fr' ? "Non pris en charge sur cet appareil" :
@@ -1703,109 +1768,65 @@ async function requestNotificationPermission(){
 }
 
 function startNotificationListeners(){
-  if(!('Notification' in window) || Notification.permission !== 'granted') return;
-  const user = auth.currentUser;
-  if(!user) return;
+  if(!('Notification' in window)||Notification.permission!=='granted')return;
+  const user=auth.currentUser;if(!user)return;
+  if(notifUnsubscribe){notifUnsubscribe();notifUnsubscribe=null;}
+  if(messageNotifUnsubscribe){messageNotifUnsubscribe();messageNotifUnsubscribe=null;}
+  messageSubUnsubscribes.forEach(unsub=>{try{unsub();}catch(e){}});messageSubUnsubscribes.clear();
+  notifFirstLoad=true;
+  knownBookingStatuses={};
+  try{
+    const saved=JSON.parse(localStorage.getItem('khadamati_notified_messages_'+user.uid)||'[]');
+    knownMessageIds=new Set(saved);
+  }catch(e){knownMessageIds=new Set();}
+  const saveKnown=()=>{try{localStorage.setItem('khadamati_notified_messages_'+user.uid,JSON.stringify(Array.from(knownMessageIds).slice(-500)));}catch(e){}};
+  const bookingField=isCraftsmanUser?'craftsmanId':'customerId';
+  notifUnsubscribe=db.collection('bookings').where(bookingField,'==',user.uid).onSnapshot(snapshot=>{
+    snapshot.docChanges().forEach(change=>{
+      const d=change.doc.data();
+      if(notifFirstLoad){knownBookingStatuses[change.doc.id]=d.status;return;}
+      if(change.type==='added'&&isCraftsmanUser){showLocalNotification(t('newOrderTitle'),`${d.customerEmail||''} — ${d.address||''}`||t('newOrderNotif'));}
+      if(change.type==='modified'){
+        const prev=knownBookingStatuses[change.doc.id];
+        if(prev!==d.status){const statusText=statusLabels[currentLang]?.[d.status]||d.status||'';showLocalNotification(t('orderUpdatedTitle'),isCraftsmanUser?statusText:t('statusChangedNotif')+': '+statusText);}
+        knownBookingStatuses[change.doc.id]=d.status;
+      }
+    });
+    notifFirstLoad=false;
+  },e=>console.log('تعذر الاستماع للطلبات:',e));
 
-  if(notifUnsubscribe){ notifUnsubscribe(); notifUnsubscribe = null; }
-  if(messageNotifUnsubscribe){ messageNotifUnsubscribe(); messageNotifUnsubscribe = null; }
-  messageSubUnsubscribes.forEach(unsub=>{ try{ unsub(); }catch(e){} });
-  messageSubUnsubscribes.clear();
-
-  notifFirstLoad = true;
-  messageNotifFirstLoad = true;
-  knownBookingStatuses = {};
-  knownMessageIds = new Set();
-
-  const bookingField = isCraftsmanUser ? 'craftsmanId' : 'customerId';
-
-  notifUnsubscribe = db.collection('bookings').where(bookingField, '==', user.uid)
-    .onSnapshot(snapshot=>{
-      snapshot.docChanges().forEach(change=>{
-        const d = change.doc.data();
-
-        if(notifFirstLoad){
-          knownBookingStatuses[change.doc.id] = d.status;
-          return;
-        }
-
-        if(change.type === 'added' && isCraftsmanUser){
-          const body = `${d.customerEmail || ''} — ${d.address || ''}`;
-          showLocalNotification(t('newOrderTitle'), body || t('newOrderNotif'));
-        }
-
-        if(change.type === 'modified'){
-          const prevStatus = knownBookingStatuses[change.doc.id];
-          if(prevStatus !== d.status){
-            const statusText = statusLabels[currentLang]?.[d.status] || d.status || '';
-            if(isCraftsmanUser){
-              showLocalNotification(t('orderUpdatedTitle'), statusText);
-            }else{
-              showLocalNotification(t('orderUpdatedTitle'),
-                t('statusChangedNotif') + ': ' + statusText);
-            }
+  messageNotifUnsubscribe=db.collection('conversations').where('participants','array-contains',user.uid).onSnapshot(convSnap=>{
+    convSnap.docs.forEach(convDoc=>{
+      const convId=convDoc.id;
+      if(messageSubUnsubscribes.has(convId))return;
+      const cd=convDoc.data()||{};
+      const otherId=(cd.participants||[]).find(id=>id!==user.uid);
+      const otherName=(cd.participantNames||{})[otherId]||cd.craftsmanName||cd.customerName||'مستخدم';
+      let initialLoad=true;
+      const unsubMessages=db.collection('conversations').doc(convId).collection('messages').orderBy('createdAt','desc').limit(50).onSnapshot(msgSnap=>{
+        msgSnap.docChanges().forEach(change=>{
+          if(change.type!=='added')return;
+          const m=change.doc.data();
+          if(!m||m.senderId===user.uid)return;
+          const uniqueId=convId+'_'+change.doc.id;
+          if(initialLoad){knownMessageIds.add(uniqueId);return;}
+          if(knownMessageIds.has(uniqueId))return;
+          knownMessageIds.add(uniqueId);saveKnown();
+          if(chatConvId===convId&&chatOverlay.classList.contains('show')){
+            db.collection('conversations').doc(convId).set({['unreadCountBy.'+user.uid]:0},{merge:true}).catch(()=>{});
+            return;
           }
-          knownBookingStatuses[change.doc.id] = d.status;
-        }
-      });
-      notifFirstLoad = false;
-    }, error=>console.log('تعذر الاستماع للطلبات:', error));
-
-  // Watch all conversations in which the current user participates, then watch their messages.
-  messageNotifUnsubscribe = db.collection('conversations')
-    .where('participants', 'array-contains', user.uid)
-    .onSnapshot(convSnap=>{
-      convSnap.docs.forEach(convDoc=>{
-        const convId = convDoc.id;
-        const cd = convDoc.data();
-        const otherName = user.uid === cd.craftsmanId
-          ? (cd.customerName || cd.customerEmail || '')
-          : (cd.craftsmanName || '');
-
-        if(messageSubUnsubscribes.has(convId)) return;
-        const unsubMessages = db.collection('conversations').doc(convId).collection('messages')
-          .orderBy('createdAt', 'desc').limit(20)
-          .onSnapshot(msgSnap=>{
-            msgSnap.docChanges().forEach(change=>{
-              if(change.type !== 'added') return;
-              const m = change.doc.data();
-              if(!m || m.senderId === user.uid) return;
-
-              const uniqueId = convId + '_' + change.doc.id;
-              if(knownMessageIds.has(uniqueId)) return;
-
-              // On the initial snapshot, remember existing messages but don't notify for old messages.
-              if(messageNotifFirstLoad){
-                knownMessageIds.add(uniqueId);
-                return;
-              }
-
-              knownMessageIds.add(uniqueId);
-
-              // If this conversation is currently open, the message is already being read.
-              // Do not show an unread badge or notification for it.
-              if(chatConvId === convId && chatOverlay.classList.contains('show')){
-                db.collection('conversations').doc(convId).set(
-                  { ['unreadCountBy.'+user.uid]: 0 },
-                  {merge:true}
-                ).catch(()=>{});
-                return;
-              }
-
-              unreadMessages++;
-              setBadge('msg-badge', unreadMessages);
-
-              const senderLabel=(m.senderName||otherName||'').trim();
-              const body=(m.text||'').trim()||t('newMessageNotif');
-              showLocalNotification(senderLabel?`${t('messageFrom')} ${senderLabel}`:t('newMessageNotif'),body);
-            });
-          }, ()=>{});
-        messageSubUnsubscribes.set(convId, unsubMessages);
-      });
-      messageNotifFirstLoad = false;
-    }, error=>console.log('تعذر الاستماع للمحادثات:', error));
+          unreadMessages++;setBadge('msg-badge',unreadMessages);
+          const senderLabel=(m.senderName||otherName||'').trim();
+          const body=(m.text||'').trim()||t('newMessageNotif');
+          showLocalNotification(senderLabel?`${t('messageFrom')} ${senderLabel}`:t('newMessageNotif'),body);
+        });
+        initialLoad=false;
+      },e=>console.log('تعذر الاستماع لرسائل المحادثة:',e));
+      messageSubUnsubscribes.set(convId,unsubMessages);
+    });
+  },e=>console.log('تعذر الاستماع للمحادثات:',e));
 }
-
 function stopNotificationListeners(){
   if(notifUnsubscribe){ try{ notifUnsubscribe(); }catch(e){} notifUnsubscribe = null; }
   if(messageNotifUnsubscribe){ try{ messageNotifUnsubscribe(); }catch(e){} messageNotifUnsubscribe = null; }
@@ -2142,34 +2163,36 @@ window.addEventListener('offline', updateOnlineStatus);
 updateOnlineStatus();
 
 if('serviceWorker' in navigator){
-  window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./sw.js?v=notifications-2').then(reg=>{
-      reg.addEventListener('updatefound', ()=>{
-        const newWorker = reg.installing;
-        if(!newWorker) return;
-        newWorker.addEventListener('statechange', ()=>{
-          if(newWorker.state === 'installed' && navigator.serviceWorker.controller){
+  window.addEventListener('load',async ()=>{
+    try{
+      const reg=await navigator.serviceWorker.register('./sw.js?v=5',{updateViaCache:'none'});
+      await reg.update();
+      reg.addEventListener('updatefound',()=>{
+        const newWorker=reg.installing;
+        if(!newWorker)return;
+        newWorker.addEventListener('statechange',()=>{
+          if(newWorker.state==='installed'&&navigator.serviceWorker.controller){
             document.getElementById('update-banner').classList.add('show');
           }
         });
       });
-    }).catch(()=>{});
+    }catch(e){console.log('SW registration:',e);}
 
-    let refreshing = false;
-    navigator.serviceWorker.addEventListener('controllerchange', ()=>{
-      if(refreshing) return;
-      refreshing = true;
+    let refreshing=false;
+    navigator.serviceWorker.addEventListener('controllerchange',()=>{
+      if(refreshing)return;
+      refreshing=true;
       window.location.reload();
     });
 
-    document.getElementById('update-btn').addEventListener('click', async ()=>{
-      const reg = await navigator.serviceWorker.getRegistration();
-      if(reg && reg.waiting){
-        reg.waiting.postMessage({ type: 'SKIP_WAITING' });
-      }
-    });
+    const updateBtn=document.getElementById('update-btn');
+    if(updateBtn){
+      updateBtn.addEventListener('click',async ()=>{
+        const reg=await navigator.serviceWorker.getRegistration();
+        if(reg){await reg.update();if(reg.waiting)reg.waiting.postMessage({type:'SKIP_WAITING'});}
+      });
+    }
   });
-}
-</script>
+}</script>
 </body>
 </html>
