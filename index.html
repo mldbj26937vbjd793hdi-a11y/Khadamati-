@@ -121,8 +121,13 @@ nav button .n-ic{display:block;font-size:19px;margin-bottom:2px;}
 .bubble.mine{align-self:flex-end;background:var(--rust);color:#fff;border-bottom-left-radius:4px;}
 .bubble.theirs{align-self:flex-start;background:#F1EAD9;color:var(--ink);border-bottom-right-radius:4px;}
 .chat-input-row{display:flex;gap:8px;padding:12px;border-top:1px solid var(--line);flex-shrink:0;}
-.chat-input-row input{margin:0;flex:1;}
+.chat-input-row input,.chat-input-row textarea{margin:0;flex:1;min-width:0;resize:none;min-height:48px;max-height:110px;line-height:1.5;padding:12px;-webkit-user-select:text;user-select:text;-webkit-appearance:none;}
 .chat-input-row button{width:auto;padding:0 18px;flex-shrink:0;}
+.chat-send-btn{min-width:112px;height:50px;border:0;border-radius:16px;background:var(--rust);color:#fff;font-size:17px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 5px 14px rgba(181,80,45,.22);cursor:pointer;transition:transform .12s ease,box-shadow .12s ease,opacity .12s ease;}
+.chat-send-btn span{font-size:19px;line-height:1;}
+.chat-send-btn:active{transform:scale(.96);box-shadow:0 2px 8px rgba(181,80,45,.18);}
+.chat-send-btn:disabled{opacity:.55;cursor:not-allowed;transform:none;}
+@media(max-width:430px){.chat-send-btn{min-width:96px;font-size:16px;padding:0 14px;border-radius:14px;}}
 
 #offline-banner{position:fixed;top:0;left:0;right:0;z-index:9998;background:var(--rust-deep);color:#fff;text-align:center;padding:9px 16px;font-size:13px;font-weight:700;transform:translateY(-100%);transition:transform .3s ease;}
 #offline-banner.show{transform:translateY(0);}
@@ -146,7 +151,18 @@ nav button .n-ic{display:block;font-size:19px;margin-bottom:2px;}
 #app.show{opacity:1;transform:translateY(0);}
 </style>
 </head>
-<body>
+<script>
+  atOptions = {
+    'key' : '33ca295e7132ffe8c23d91a46a83927d',
+    'format' : 'iframe',
+    'height' : 250,
+    'width' : 300,
+    'params' : {}
+  };
+</script>
+
+<script src="https://www.highrevenueformat.com/33ca295e7132ffe8c23d91a46a83927d/invoke.js"></script>
+  <body>
 
 <div id="splash">
   <img src="icon-512.png" alt="خدماتي">
@@ -192,17 +208,16 @@ nav button .n-ic{display:block;font-size:19px;margin-bottom:2px;}
        بعد ما تسجلي فشبكة إعلانات (Adsterra/PropellerAds) وتاخدي
        كود الإعلان ديالك، الصقيه هنا بدل هاد الـ div، أو جواه.
        ======================================================== -->
-  <div id="ad-slot-home" style="min-height:0;display:flex;justify-content:center;overflow:hidden;">
-    <script>
-      atOptions = {
-        'key' : '33ca295e7132ffe8c23d91a46a83927d',
-        'format' : 'iframe',
-        'height' : 250,
-        'width' : 300,
-        'params' : {}
-      };
-    </script>
-    <script src="https://www.highrevenueformat.com/33ca295e7132ffe8c23d91a46a83927d/invoke.js"></script>
+  <div id="ad-slot-home" style="min-height:260px;width:100%;display:flex;justify-content:center;align-items:center;overflow:hidden;margin:15px 0;">
+    <iframe
+      title="Advertisement"
+      width="300"
+      height="250"
+      frameborder="0"
+      scrolling="no"
+      style="display:block;width:300px;height:250px;border:0;overflow:hidden;max-width:100%;"
+      srcdoc="<!doctype html><html><head><meta charset=&quot;utf-8&quot;><meta name=&quot;viewport&quot; content=&quot;width=device-width,initial-scale=1&quot;><style>html,body{margin:0;padding:0;width:300px;height:250px;overflow:hidden;background:transparent}</style></head><body><script>atOptions={key:'33ca295e7132ffe8c23d91a46a83927d',format:'iframe',height:250,width:300,params:{}};</script><script src=&quot;https://www.highrevenueformat.com/33ca295e7132ffe8c23d91a46a83927d/invoke.js&quot;></script></body></html>">
+    </iframe>
   </div>
 
   <div class="categories" id="categories">
@@ -451,11 +466,11 @@ nav button .n-ic{display:block;font-size:19px;margin-bottom:2px;}
 <div class="overlay" id="chat-overlay">
   <div class="modal chat-modal">
     <button class="modal-close" id="chat-close">×</button>
-    <div class="chat-header"><h3 id="chat-title"></h3><div class="chat-subtitle" id="chat-subtitle">محادثة</div></div>
+    <div class="chat-header"><h3 id="chat-title"></h3><div class="chat-subtitle" id="chat-subtitle" data-i18n="chatSubtitle">محادثة</div></div>
     <div class="chat-messages" id="chat-messages"></div>
-    <div class="chat-input-row">
-      <input type="text" id="chat-input" data-i18n-ph="typeMessage" placeholder="اكتب رسالة...">
-      <button id="chat-send" data-i18n="send">إرسال</button>
+    <div class="chat-input-row" style="align-items:flex-end;">
+      <textarea id="chat-input" data-i18n-ph="typeMessage" placeholder="اكتب رسالة..." rows="1" inputmode="text" autocomplete="off" autocorrect="on" spellcheck="true"></textarea>
+      <button id="chat-send" class="chat-send-btn" data-i18n="send" aria-label="إرسال الرسالة">إرسال <span aria-hidden="true">➤</span></button>
     </div>
   </div>
 </div>
@@ -463,14 +478,14 @@ nav button .n-ic{display:block;font-size:19px;margin-bottom:2px;}
 <!-- Customer name required after login when no name is saved -->
 <div class="overlay" id="customer-name-overlay">
   <div class="modal" style="max-width:430px;text-align:center;">
-    <h3>أدخل اسمك</h3>
+    <h3 data-i18n="enterName">أدخل اسمك</h3>
     <p class="muted">اكتب اسمك حتى يظهر بشكل صحيح في الرسائل والإشعارات.</p>
     <div class="field" style="text-align:right;">
-      <label>الاسم الكامل</label>
+      <label data-i18n="fullNameLabel">الاسم الكامل</label>
       <input type="text" id="customer-required-name" maxlength="60" placeholder="مثلاً: محمد العلوي">
     </div>
     <div class="field-error" id="customer-name-error"></div>
-    <button id="save-customer-name">حفظ الاسم</button>
+    <button id="save-customer-name" data-i18n="saveName">حفظ الاسم</button>
   </div>
 </div>
 
@@ -537,7 +552,10 @@ if(fcmMessaging){
     const d = payload.data || {};
     const title = n.title || d.title || t("newMessageNotif");
     const body = n.body || d.body || "";
-    if(title || body) showLocalNotification(title, body);
+    const eventId = d.eventId || d.messageId || d.bookingId || d.id || '';
+    const type = d.type || (d.messageId ? 'message' : (d.bookingId ? 'booking' : 'push'));
+    const eventKey = eventId ? ('fcm:'+type+':'+eventId) : '';
+    if(title || body) showLocalNotification(title, body, eventKey);
   });
 }
 
@@ -602,6 +620,20 @@ const translations = {
   enablePush:{ar:"🔔 تفعيل إشعارات الرسائل والطلبات",fr:"🔔 Activer les notifications des messages et commandes",en:"🔔 Enable message and order notifications"},
   pushEnabled:{ar:"تم تفعيل إشعارات الرسائل والطلبات ✅",fr:"Notifications des messages et commandes activées ✅",en:"Message and order notifications enabled ✅"},
   messageFrom:{ar:"رسالة من",fr:"Message de",en:"Message from"},
+  chatSubtitle:{ar:"محادثة",fr:"Conversation",en:"Conversation"},
+  editedLabel:{ar:"(معدلة)",fr:"(modifiée)",en:"(edited)"},
+  deletedMessage:{ar:"🗑️ تم حذف هذه الرسالة",fr:"🗑️ Message supprimé",en:"🗑️ Message deleted"},
+  editMessage:{ar:"✏️ تعديل",fr:"✏️ Modifier",en:"✏️ Edit"},
+  deleteMessage:{ar:"🗑️ حذف",fr:"🗑️ Supprimer",en:"🗑️ Delete"},
+  loginRequired:{ar:"يرجى تسجيل الدخول",fr:"Veuillez vous connecter",en:"Please log in"},
+  noMessages:{ar:"لا توجد رسائل بعد",fr:"Aucun message",en:"No messages yet"},
+  sending:{ar:"⏳ إرسال...",fr:"⏳ Envoi...",en:"⏳ Sending..."},
+  sentOk:{ar:"تم إرسال الرسالة ✅",fr:"Message envoyé ✅",en:"Message sent ✅"},
+  markRead:{ar:"مقروءة",fr:"Lu",en:"Read"},
+  markUnread:{ar:"غير مقروءة",fr:"Non lu",en:"Unread"},
+  enterName:{ar:"أدخل اسمك",fr:"Entrez votre nom",en:"Enter your name"},
+  saveName:{ar:"حفظ الاسم",fr:"Enregistrer le nom",en:"Save name"},
+  fullNameLabel:{ar:"الاسم الكامل",fr:"Nom complet",en:"Full name"},
   newOrderTitle:{ar:"طلب خدمة جديد",fr:"Nouvelle commande",en:"New service order"},
   orderUpdatedTitle:{ar:"تحديث الطلب",fr:"Mise à jour de la commande",en:"Order updated"},
   logout:{ar:"تسجيل الخروج",fr:"Déconnexion",en:"Log out"},
@@ -676,20 +708,46 @@ let currentLang = localStorage.getItem('lang') || 'ar';
 function applyLang(){
   document.documentElement.lang = currentLang;
   document.documentElement.dir = currentLang === 'ar' ? 'rtl' : 'ltr';
-  document.getElementById('lang-select').value = currentLang;
+  const langSelect=document.getElementById('lang-select');
+  if(langSelect) langSelect.value=currentLang;
+
   document.querySelectorAll('[data-i18n]').forEach(el=>{
-    const key = el.getAttribute('data-i18n');
-    if(translations[key]) el.textContent = translations[key][currentLang];
+    const key=el.getAttribute('data-i18n');
+    if(translations[key]) el.textContent=translations[key][currentLang];
   });
   document.querySelectorAll('[data-i18n-ph]').forEach(el=>{
-    const key = el.getAttribute('data-i18n-ph');
-    if(translations[key]) el.placeholder = translations[key][currentLang];
+    const key=el.getAttribute('data-i18n-ph');
+    if(translations[key]) el.placeholder=translations[key][currentLang];
   });
+
+  // عناصر ثابتة لم تكن مرتبطة سابقًا بمفتاح ترجمة.
+  const staticLabels={
+    'chat-subtitle':'chatSubtitle',
+    'save-customer-name':'saveName'
+  };
+  Object.keys(staticLabels).forEach(id=>{
+    const el=document.getElementById(id), key=staticLabels[id];
+    if(el && translations[key]) el.textContent=translations[key][currentLang];
+  });
+  const chatInput=document.getElementById('chat-input');
+  if(chatInput) chatInput.placeholder=t('typeMessage');
+  const photoName=document.querySelector('#customer-name-overlay h3');
+  if(photoName) photoName.textContent=t('enterName');
+  const photoLabel=document.querySelector('#customer-name-overlay label');
+  if(photoLabel) photoLabel.textContent=t('fullNameLabel');
+  const notifBtn=document.getElementById('acc-notif-btn');
+  if(notifBtn) notifBtn.textContent=(('Notification' in window && Notification.permission==='granted') ? t('pushEnabled') : t('enablePush'));
+
   localStorage.setItem('lang', currentLang);
   renderCraftsmen();
   if(document.getElementById('page-orders').classList.contains('active')) loadOrders();
   if(document.getElementById('page-messages').classList.contains('active')) loadConversations();
+  if(chatConvId && chatOverlay.classList.contains('show')){
+    const sub=document.getElementById('chat-subtitle'); if(sub) sub.textContent=t('chatSubtitle');
+  }
+  renderNotificationCenter();
 }
+
 document.getElementById('lang-select').addEventListener('change', (e)=>{
   currentLang = e.target.value;
   applyLang();
@@ -703,7 +761,7 @@ function showPage(id){
   document.getElementById(id).classList.add('active');
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active', b.dataset.page===id));
   if(id === 'page-orders') loadOrders();
-  if(id === 'page-messages'){ unreadMessages = 0; setBadge('msg-badge', 0); loadConversations(); }
+  if(id === 'page-messages'){ loadConversations(); }
 }
 document.querySelectorAll('.nav-btn').forEach(btn=>{
   btn.addEventListener('click', ()=> showPage(btn.dataset.page));
@@ -897,13 +955,16 @@ document.getElementById('booking-confirm').addEventListener('click', async ()=>{
     await db.collection('bookings').add({
       customerId: user.uid,
       customerEmail: user.email,
+      customerName: await getCurrentUserDisplayName(),
       craftsmanId: bookingTarget ? (bookingTarget.id || null) : null,
       providerName: bookingTarget ? bookingTarget.name : '',
       providerCat: bookingTarget ? bookingTarget.cat : '',
+      craftsmanName: bookingTarget ? bookingTarget.name : '',
       address: addr,
       time: time,
       status: 'pending',
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     });
     bookingOverlay.classList.remove('show');
     showToast((currentLang==='fr'?'Commande confirmée — ':(currentLang==='en'?'Order confirmed — ':'تم تأكيد طلبك — ')) + time + ' ✅', true);
@@ -942,9 +1003,10 @@ async function loadOrders(){
 
   try{
     if(isCraftsmanUser){
-      const snap = await db.collection('bookings').where('craftsmanId','==',user.uid).orderBy('createdAt','desc').limit(30).get();
+      const snap = await db.collection('bookings').where('craftsmanId','==',user.uid).limit(50).get();
       if(snap.empty){ list.innerHTML = `<div class="muted" style="text-align:center;padding:20px;">${currentLang==='fr'?'Aucune commande':(currentLang==='en'?'No orders':'لا توجد طلبات حتى الآن')}</div>`; return; }
-      list.innerHTML = snap.docs.map(doc=>{
+      const orderDocs = snap.docs.slice().sort((a,b)=>((b.data().createdAt?.toMillis?.()||0)-(a.data().createdAt?.toMillis?.()||0)));
+      list.innerHTML = orderDocs.map(doc=>{
         const d = doc.data();
         const status = d.status || 'pending';
         const nxt = dashNext[status];
@@ -958,9 +1020,10 @@ async function loadOrders(){
           </div>`;
       }).join('');
     } else {
-      const snap = await db.collection('bookings').where('customerId','==',user.uid).orderBy('createdAt','desc').limit(30).get();
+      const snap = await db.collection('bookings').where('customerId','==',user.uid).limit(50).get();
       if(snap.empty){ list.innerHTML = `<div class="muted" style="text-align:center;padding:20px;">${currentLang==='fr'?"Vous n'avez encore rien commandé":(currentLang==='en'?"You haven't placed any orders yet":'لم تقم بأي حجز بعد')}</div>`; return; }
-      list.innerHTML = snap.docs.map(doc=>{
+      const orderDocs = snap.docs.slice().sort((a,b)=>((b.data().createdAt?.toMillis?.()||0)-(a.data().createdAt?.toMillis?.()||0)));
+      list.innerHTML = orderDocs.map(doc=>{
         const d = doc.data();
         const status = d.status || 'pending';
         return `
@@ -980,7 +1043,7 @@ async function loadOrders(){
 
 async function updateBookingStatus(bookingId, newStatus){
   try{
-    await db.collection('bookings').doc(bookingId).update({ status: newStatus });
+    await db.collection('bookings').doc(bookingId).update({ status: newStatus, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
     showToast(currentLang==='fr'?'Statut mis à jour ✅':(currentLang==='en'?'Status updated ✅':'تم تحديث حالة الطلب ✅'), true);
     loadOrders();
     if(newStatus === 'done'){
@@ -1287,14 +1350,39 @@ document.getElementById('report-submit').addEventListener('click', async ()=>{
 // ================= Chat (real-time, persistent conversation per customer-craftsman pair) =================
 const chatOverlay = document.getElementById('chat-overlay');
 let chatConvId = null;
+let chatOtherId = null;
 let chatUnsubscribe = null;
 
 function convIdFor(customerId, craftsmanId){ return customerId + '_' + craftsmanId; }
 
+async function getCurrentUserDisplayName(){
+  const user = auth.currentUser;
+  if(!user) return '';
+
+  // حاول أولاً استخدام displayName من Firebase Authentication.
+  if(user.displayName && String(user.displayName).trim()){
+    return String(user.displayName).trim();
+  }
+
+  // ثم ابحث عن اسم المستخدم في وثيقة users.
+  try{
+    const snap = await db.collection('users').doc(user.uid).get();
+    if(snap.exists){
+      const d = snap.data() || {};
+      const name = d.displayName || d.name || d.fullName || d.username || d.email || '';
+      if(String(name).trim()) return String(name).trim();
+    }
+  }catch(e){
+    console.warn('تعذر جلب اسم المستخدم:', e);
+  }
+
+  return user.email || '';
+}
+
 async function loadConversations(){
   const list = document.getElementById('conversations-list');
   const user = auth.currentUser;
-  if(!user){ list.innerHTML = '<div class="muted" style="text-align:center;padding:20px;">يرجى تسجيل الدخول</div>'; return; }
+  if(!user){ list.innerHTML = '<div class="muted" style="text-align:center;padding:20px;">'+t('loginRequired')+'</div>'; return; }
   list.innerHTML = skeletonCards(3);
   try{
     const snap = await db.collection('conversations').where('participants','array-contains',user.uid).limit(50).get();
@@ -1302,12 +1390,14 @@ async function loadConversations(){
     const docs=snap.docs.slice().sort((a,b)=>{ const av=a.data().updatedAt?.toMillis?a.data().updatedAt.toMillis():0; const bv=b.data().updatedAt?.toMillis?b.data().updatedAt.toMillis():0; return bv-av; });
     list.innerHTML=docs.map(doc=>{
       const d=doc.data();
-      const otherLabel=user.uid===d.craftsmanId?(d.customerName||d.customerEmail||'Customer'):(d.craftsmanName||'');
+      const otherId=(d.participants||[]).find(id=>id!==user.uid)||'';
+      const names=d.participantNames||{};
+      const otherLabel=names[otherId] || (user.uid===d.craftsmanId?(d.customerName||d.customerEmail||''):(d.craftsmanName||d.customerName||d.customerEmail||'User'));
       const lastText=d.lastMessage||'';
       const unread=Number((d.unreadCountBy||{})[user.uid]||0);
       const time=d.lastMessageAt?.toDate?d.lastMessageAt.toDate().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):'';
       const safeName=escapeHtml(otherLabel).replace(/'/g,"\'");
-      return `<div class="conv-item" onclick="openChat('${doc.id}','${safeName}')"><div class="avatar">${initials(otherLabel||'؟')}</div><div class="conv-body"><div style="display:flex;align-items:center;justify-content:space-between;gap:8px;"><div class="conv-name">${escapeHtml(otherLabel)}</div><span class="conv-time">${time}</span></div><div class="conv-meta"><div class="conv-last">${escapeHtml(lastText||'لا توجد رسائل بعد')}</div>${unread?`<span class="conv-unread">${unread>99?'99+':unread}</span>`:''}</div></div></div>`;
+      return `<div class="conv-item" onclick="openChat('${doc.id}','${safeName}','${otherId}')"><div class="avatar">${initials(otherLabel||'؟')}</div><div class="conv-body"><div style="display:flex;align-items:center;justify-content:space-between;gap:8px;"><div class="conv-name">${escapeHtml(otherLabel)}</div><span class="conv-time">${time}</span></div><div class="conv-meta"><div class="conv-last">${escapeHtml(lastText||t('noMessages'))}</div>${unread?`<span class="conv-unread">${unread>99?'99+':unread}</span>`:''}</div></div></div>`;
     }).join('');
   }catch(error){
     console.error('تعذر تحميل المحادثات:',error);
@@ -1339,12 +1429,14 @@ async function openChatWithCraftsman(craftsmanId, craftsmanName){
     showToast(currentLang==='fr' ? 'Impossible de créer la conversation' : (currentLang==='en' ? 'Unable to create conversation' : 'تعذر إنشاء المحادثة') + (e && e.code ? ' ('+e.code+')' : ''));
     return;
   }
-  openChat(convId, craftsmanName);
+  openChat(convId, craftsmanName, craftsmanId);
 }
 
-function openChat(convId, otherLabel){
+function openChat(convId, otherLabel, otherId=null){
   chatConvId = convId;
+  chatOtherId = otherId || null;
   document.getElementById('chat-title').textContent = otherLabel;
+  document.getElementById('chat-subtitle').textContent = t('chatSubtitle');
   const currentUserForRead = auth.currentUser;
   if(currentUserForRead){
     db.collection('conversations').doc(convId).set(
@@ -1368,8 +1460,41 @@ function openChat(convId, otherLabel){
       box.innerHTML = snap.docs.map(doc=>{
         const m = doc.data();
         const mine = user && m.senderId === user.uid;
-        return `<div class="bubble ${mine?'mine':'theirs'}">${(m.text||'').replace(/</g,'&lt;')}</div>`;
+        const text = m.deleted ? '🗑️ تم حذف هذه الرسالة' : (m.text || '');
+        const safeText = escapeHtml(text).replace(/\n/g,'<br>');
+        const edited = m.edited && !m.deleted ? ' <span style="font-size:10px;opacity:.75;">'+t('editedLabel')+'</span>' : '';
+        const read = mine ? (Array.isArray(m.seenBy) && chatOtherId && m.seenBy.includes(chatOtherId) ? '✓✓' : '✓') : '';
+        const actions = mine && !m.deleted ? `
+          <div style="display:flex;gap:10px;margin-top:4px;font-size:11px;">
+            <button type="button" onclick="editChatMessage('${doc.id}')" style="background:none;color:inherit;padding:0;margin:0;width:auto;font-size:11px;">${t('editMessage')}</button>
+            <button type="button" onclick="deleteChatMessage('${doc.id}')" style="background:none;color:inherit;padding:0;margin:0;width:auto;font-size:11px;">${t('deleteMessage')}</button>
+          </div>` : '';
+        const displayText=m.deleted ? t('deletedMessage') : (m.text || '');
+        const displaySafe=escapeHtml(displayText).replace(/\n/g,'<br>');
+        return `<div class="bubble ${mine?'mine':'theirs'}" style="${m.deleted?'opacity:.72;font-style:italic;':''}">${displaySafe}${edited}${mine?` <span style="font-size:10px;opacity:.8;display:inline-block;margin-inline-start:6px;">${read}</span>`:''}${actions}</div>`;
       }).join('');
+
+      // عند فتح المحادثة، سجّل الرسائل الواردة كمُسلّمة ومقروءة.
+      if(user){
+        const batch=db.batch();
+        let changed=0;
+        snap.docs.forEach(doc=>{
+          const m=doc.data()||{};
+          if(m.senderId && m.senderId!==user.uid){
+            const seen=Array.isArray(m.seenBy)?m.seenBy:[];
+            const delivered=Array.isArray(m.deliveredTo)?m.deliveredTo:[];
+            const ref=doc.ref;
+            if(!seen.includes(user.uid) || !delivered.includes(user.uid)){
+              batch.update(ref,{
+                seenBy: firebase.firestore.FieldValue.arrayUnion(user.uid),
+                deliveredTo: firebase.firestore.FieldValue.arrayUnion(user.uid)
+              });
+              changed++;
+            }
+          }
+        });
+        if(changed) batch.commit().catch(e=>console.warn('تعذر تحديث حالة القراءة:',e));
+      }
       box.scrollTop = box.scrollHeight;
     }, error=>{
       console.error('تعذر تحميل الرسائل:', error);
@@ -1392,31 +1517,185 @@ chatOverlay.addEventListener('click', e=>{
 
 async function sendChatMessage(){
   const input = document.getElementById('chat-input');
+  const button = document.getElementById('chat-send');
   const text = input.value.trim();
   const user = auth.currentUser;
-  if(!text || !user || !chatConvId) return;
-  input.value = '';
+
+  if(!user){
+    showToast('يجب تسجيل الدخول أولاً');
+    return;
+  }
+
+  if(!chatConvId){
+    showToast('افتح محادثة أولاً');
+    return;
+  }
+
+  if(!text){
+    input.focus();
+    return;
+  }
+
+  if(button.disabled) return;
+
+  const originalLabel = button.innerHTML;
+  button.disabled = true;
+  button.innerHTML = t('sending');
+
   try{
     const senderName = (await getCurrentUserDisplayName()) || user.email || 'User';
     const convRef = db.collection('conversations').doc(chatConvId);
+
+    // تأكد من وجود المحادثة وأن المستخدم طرف فيها.
     const convSnap = await convRef.get();
-    const conv = convSnap.exists ? convSnap.data() : {};
-    const recipientId = (conv.participants || []).find(id => id !== user.uid) || null;
-    await convRef.collection('messages').add({senderId:user.uid,senderName,text,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
-    const updateData = {lastMessage:text,lastMessageSenderId:user.uid,lastMessageSenderName:senderName,lastMessageAt:firebase.firestore.FieldValue.serverTimestamp(),updatedAt:firebase.firestore.FieldValue.serverTimestamp()};
-    if(recipientId) updateData['unreadCountBy.'+recipientId]=firebase.firestore.FieldValue.increment(1);
-    await convRef.set(updateData,{merge:true});
+    if(!convSnap.exists){
+      throw new Error('المحادثة غير موجودة');
+    }
+
+    const conv = convSnap.data() || {};
+    const participants = Array.isArray(conv.participants) ? conv.participants : [];
+
+    if(!participants.includes(user.uid)){
+      throw new Error('ليس لديك صلاحية الكتابة في هذه المحادثة');
+    }
+
+    const recipientId = chatOtherId || participants.find(id => id !== user.uid) || null;
+
+    // إرسال الرسالة أولاً.
+    await convRef.collection('messages').add({
+      senderId: user.uid,
+      senderName: senderName,
+      text: text,
+      type: 'text',
+      edited: false,
+      deleted: false,
+      seenBy: [user.uid],
+      deliveredTo: [],
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    // تحديث آخر رسالة. إذا رفضت القواعد هذا التحديث، لا نعتبر الرسالة فاشلة
+    // لأن الرسالة نفسها تم حفظها بالفعل.
+    try{
+      const updateData = {
+        lastMessage: text,
+        lastMessageSenderId: user.uid,
+        lastMessageSenderName: senderName,
+        lastMessageAt: firebase.firestore.FieldValue.serverTimestamp(),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      };
+
+      if(recipientId){
+        updateData['unreadCountBy.' + recipientId] = firebase.firestore.FieldValue.increment(1);
+      }
+
+      await convRef.set(updateData, {merge:true});
+    }catch(convError){
+      console.warn('تم إرسال الرسالة لكن تعذر تحديث ملخص المحادثة:', convError);
+    }
+
+    input.value = '';
+    input.style.height = '48px';
+    input.focus();
+    showToast(t('sentOk'), true);
+
   }catch(error){
     console.error('تعذر إرسال الرسالة:', error);
-    showToast(currentLang==='fr' ? "Échec de l'envoi" : (currentLang==='en' ? "Failed to send" : "تعذر إرسال الرسالة") + (error && error.code ? ' ('+error.code+')' : ''));
+
+    const code = error && error.code ? error.code : '';
+    let message = 'تعذر إرسال الرسالة';
+
+    if(code === 'permission-denied'){
+      message += ' — صلاحيات Firebase تمنع الإرسال. انشر قواعد Firestore الجديدة.';
+    }else if(code === 'failed-precondition'){
+      message += ' — تحقق من إعدادات Firebase/Firestore.';
+    }else if(error && error.message){
+      message += ' — ' + error.message;
+    }
+
+    showToast(message);
+
+  }finally{
+    button.disabled = false;
+    button.innerHTML = originalLabel;
   }
 }
 document.getElementById('chat-send').addEventListener('click', sendChatMessage);
 document.getElementById('chat-input').addEventListener('keydown', e=>{
-  if(e.key === 'Enter') sendChatMessage();
+  if(e.key === 'Enter' && !e.shiftKey){
+    e.preventDefault();
+    sendChatMessage();
+  }
+});
+document.getElementById('chat-input').addEventListener('input', function(){
+  this.style.height = 'auto';
+  this.style.height = Math.min(this.scrollHeight,110) + 'px';
 });
 
+async function editChatMessage(id){
+  const user = auth.currentUser;
+  if(!user || !chatConvId) return;
+  try{
+    const ref = db.collection('conversations').doc(chatConvId).collection('messages').doc(id);
+    const snap = await ref.get();
+    if(!snap.exists) return;
+    const m = snap.data();
+    if(m.senderId !== user.uid || m.deleted) return;
+    const value = prompt('تعديل الرسالة', m.text || '');
+    if(value === null) return;
+    const text = value.trim();
+    if(!text) return;
+    await ref.update({
+      text,
+      edited:true,
+      editedAt:firebase.firestore.FieldValue.serverTimestamp(),
+      updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+    });
+    await db.collection('conversations').doc(chatConvId).set({
+      lastMessage:text,
+      lastMessageAt:firebase.firestore.FieldValue.serverTimestamp(),
+      updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+    },{merge:true});
+    showToast('تم تعديل الرسالة ✅',true);
+  }catch(error){
+    console.error('Edit message error:',error);
+    showToast('تعذر تعديل الرسالة' + (error && error.code ? ' ('+error.code+')' : ''));
+  }
+}
+
+async function deleteChatMessage(id){
+  const user = auth.currentUser;
+  if(!user || !chatConvId) return;
+  if(!confirm('هل تريد حذف هذه الرسالة؟')) return;
+  try{
+    const ref = db.collection('conversations').doc(chatConvId).collection('messages').doc(id);
+    const snap = await ref.get();
+    if(!snap.exists) return;
+    const m = snap.data();
+    if(m.senderId !== user.uid) return;
+    await ref.update({
+      deleted:true,
+      text:'',
+      deletedAt:firebase.firestore.FieldValue.serverTimestamp(),
+      updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+    });
+    showToast('تم حذف الرسالة ✅',true);
+  }catch(error){
+    console.error('Delete message error:',error);
+    showToast('تعذر حذف الرسالة' + (error && error.code ? ' ('+error.code+')' : ''));
+  }
+}
+
+// =====================================================
+// Firebase Storage غير مفعّل في المشروع الحالي.
+// هذه الدالة تمنع أي محاولة رفع ملف من تعطيل الشات.
+// =====================================================
+function showStorageUnavailable(){
+  showToast('الصور والرسائل الصوتية تحتاج تفعيل Firebase Storage. الرسائل النصية تعمل بدون ذلك.');
+}
+
 // ================= Notifications (orders + messages) =================
+// نظام إشعارات موحّد: لا إشعارات قديمة، لا تكرار، والرسالة المقروءة لا تعود كإشعار.
 let notifUnsubscribe = null;
 let messageNotifUnsubscribe = null;
 let messageSubUnsubscribes = new Map();
@@ -1427,6 +1706,11 @@ let knownMessageIds = new Set();
 let unreadNotifications = 0;
 let unreadMessages = 0;
 let notificationItems = [];
+let notificationBaselineAt = 0;
+
+const NOTIF_SEEN_KEY = 'khadamati_notification_seen_v2';
+const NOTIF_MSG_KEY = uid => 'khadamati_notified_messages_v2_' + uid;
+const NOTIF_BOOKING_KEY = uid => 'khadamati_notified_bookings_v2_' + uid;
 
 function escapeHtml(value){
   return String(value || '').replace(/[&<>"']/g, ch => ({
@@ -1446,12 +1730,37 @@ function setBadge(id, count){
   }
 }
 
+function readJson(key, fallback){
+  try{
+    const v = JSON.parse(localStorage.getItem(key) || 'null');
+    return v == null ? fallback : v;
+  }catch(e){ return fallback; }
+}
+function writeJson(key, value){
+  try{ localStorage.setItem(key, JSON.stringify(value)); }catch(e){}
+}
+function pruneMap(map, max=500){
+  const entries=Object.entries(map||{}).sort((a,b)=>Number(a[1]||0)-Number(b[1]||0));
+  if(entries.length<=max) return map||{};
+  return Object.fromEntries(entries.slice(-max));
+}
+function getSeenNotificationMap(){ return readJson(NOTIF_SEEN_KEY, {}); }
+function markNotificationSeen(eventKey){
+  if(!eventKey) return true;
+  const seen=getSeenNotificationMap();
+  if(seen[eventKey]) return false;
+  seen[eventKey]=Date.now();
+  writeJson(NOTIF_SEEN_KEY, pruneMap(seen, 1000));
+  return true;
+}
+function hasSeenNotification(eventKey){
+  if(!eventKey) return false;
+  return !!getSeenNotificationMap()[eventKey];
+}
+
 function addNotificationItem(title, body, type){
   notificationItems.unshift({
-    title: title || t('appName'),
-    body: body || '',
-    type: type || 'general',
-    time: new Date()
+    title: title || t('appName'), body: body || '', type: type || 'general', time: new Date()
   });
   notificationItems = notificationItems.slice(0, 30);
   unreadNotifications++;
@@ -1469,8 +1778,7 @@ function renderNotificationCenter(){
     <div style="background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:8px;">
       <b>${escapeHtml(n.title)}</b>
       <div class="muted" style="margin-top:4px;">${escapeHtml(n.body)}</div>
-    </div>
-  `).join('');
+    </div>`).join('');
 }
 
 function openNotificationCenter(){
@@ -1480,25 +1788,27 @@ function openNotificationCenter(){
   document.getElementById('notifications-overlay').classList.add('show');
 }
 
-function showLocalNotification(title, body){
+function showLocalNotification(title, body, eventKey){
+  // نفس الحدث لا يظهر مرتين حتى لو وصل عبر Firestore وFCM معًا.
+  if(eventKey && !markNotificationSeen(eventKey)) return false;
   addNotificationItem(title, body, 'push');
   if('Notification' in window && Notification.permission === 'granted'){
     try{
-      // Use the active service worker when available; this is more reliable than new Notification()
-      // on mobile browsers.
       navigator.serviceWorker?.ready.then(reg => {
         reg.showNotification(title, {
           body: body,
           icon: './icon-192.png',
           badge: './icon-192.png',
-          tag: 'khadamati-' + Date.now(),
-          data: { url: './index.html' }
+          tag: eventKey ? ('khadamati-' + eventKey).slice(0,120) : 'khadamati-general',
+          renotify: false,
+          data: { url: './index.html', eventKey: eventKey || '' }
         });
       }).catch(()=>{
         try{ new Notification(title, {body, icon:'./icon-192.png'}); }catch(e){}
       });
     }catch(e){}
   }
+  return true;
 }
 
 async function requestNotificationPermission(){
@@ -1516,9 +1826,7 @@ async function requestNotificationPermission(){
       return true;
     }
     showToast(t('notifDenied'));
-  }catch(e){
-    showToast(t('notifDenied'));
-  }
+  }catch(e){ showToast(t('notifDenied')); }
   return false;
 }
 
@@ -1527,8 +1835,8 @@ function startNotificationListeners(){
   const user = auth.currentUser;
   if(!user) return;
 
-  if(notifUnsubscribe){ notifUnsubscribe(); notifUnsubscribe = null; }
-  if(messageNotifUnsubscribe){ messageNotifUnsubscribe(); messageNotifUnsubscribe = null; }
+  if(notifUnsubscribe){ try{ notifUnsubscribe(); }catch(e){} notifUnsubscribe=null; }
+  if(messageNotifUnsubscribe){ try{ messageNotifUnsubscribe(); }catch(e){} messageNotifUnsubscribe=null; }
   messageSubUnsubscribes.forEach(unsub=>{ try{ unsub(); }catch(e){} });
   messageSubUnsubscribes.clear();
 
@@ -1537,93 +1845,145 @@ function startNotificationListeners(){
   knownBookingStatuses = {};
   knownMessageIds = new Set();
 
-  const bookingField = isCraftsmanUser ? 'craftsmanId' : 'customerId';
+  // هذه اللحظة هي نقطة البداية. أي رسالة/حجز أقدم منها لا يولّد إشعارًا.
+  notificationBaselineAt = Date.now();
 
+  const storedMessages = readJson(NOTIF_MSG_KEY(user.uid), {});
+  Object.keys(storedMessages).forEach(id=>knownMessageIds.add(id));
+
+  const storedBookings = readJson(NOTIF_BOOKING_KEY(user.uid), {});
+
+  const saveKnownMessageIds = ()=>{
+    const map={};
+    knownMessageIds.forEach(id=>{ map[id]=Date.now(); });
+    writeJson(NOTIF_MSG_KEY(user.uid), pruneMap(map, 1000));
+  };
+  const saveBookingEvent = (id,status)=>{
+    const map=readJson(NOTIF_BOOKING_KEY(user.uid), {});
+    map[id+'|'+status]=Date.now();
+    writeJson(NOTIF_BOOKING_KEY(user.uid), pruneMap(map, 500));
+  };
+  const bookingEventSeen = (id,status)=>!!storedBookings[id+'|'+status] || hasSeenNotification('booking:'+id+':'+status);
+
+  // استعادة عداد الرسائل غير المقروءة من Firestore.
+  db.collection('conversations').where('participants','array-contains',user.uid).limit(100).get().then(snap=>{
+    let total=0;
+    snap.forEach(doc=>{ total += Number((doc.data().unreadCountBy||{})[user.uid]||0); });
+    unreadMessages=total;
+    setBadge('msg-badge', total);
+  }).catch(()=>{});
+
+  // ================= Booking notifications =================
+  const bookingField = isCraftsmanUser ? 'craftsmanId' : 'customerId';
   notifUnsubscribe = db.collection('bookings').where(bookingField, '==', user.uid)
     .onSnapshot(snapshot=>{
       snapshot.docChanges().forEach(change=>{
-        const d = change.doc.data();
+        const d=change.doc.data()||{};
+        const bookingId=change.doc.id;
+        const createdMs=d.createdAt?.toMillis?.() || 0;
+        const updatedMs=d.updatedAt?.toMillis?.() || createdMs;
 
         if(notifFirstLoad){
-          knownBookingStatuses[change.doc.id] = d.status;
+          knownBookingStatuses[bookingId]=d.status || 'pending';
           return;
         }
 
-        if(change.type === 'added' && isCraftsmanUser){
-          const body = `${d.customerEmail || ''} — ${d.address || ''}`;
-          showLocalNotification(t('newOrderTitle'), body || t('newOrderNotif'));
+        // لا تعتبر الحجوزات القديمة التي ظهرت بسبب أول مزامنة "جديدة".
+        if(change.type==='added'){
+          if(isCraftsmanUser && createdMs >= notificationBaselineAt && !bookingEventSeen(bookingId,'new')){
+            const body=`${d.customerName || d.customerEmail || ''}${d.address ? ' — '+d.address : ''}`;
+            const key='booking:'+bookingId+':new';
+            if(showLocalNotification(t('newOrderTitle'), body || t('newOrderNotif'), key)) saveBookingEvent(bookingId,'new');
+          }
+          knownBookingStatuses[bookingId]=d.status || 'pending';
+          return;
         }
 
-        if(change.type === 'modified'){
-          const prevStatus = knownBookingStatuses[change.doc.id];
-          if(prevStatus !== d.status){
-            const statusText = statusLabels[currentLang]?.[d.status] || d.status || '';
-            if(isCraftsmanUser){
-              showLocalNotification(t('orderUpdatedTitle'), statusText);
-            }else{
-              showLocalNotification(t('orderUpdatedTitle'),
-                t('statusChangedNotif') + ': ' + statusText);
+        if(change.type==='modified'){
+          const prevStatus=knownBookingStatuses[bookingId];
+          const newStatus=d.status || '';
+          knownBookingStatuses[bookingId]=newStatus;
+          if(prevStatus && prevStatus!==newStatus && updatedMs >= notificationBaselineAt){
+            const key='booking:'+bookingId+':status:'+newStatus;
+            if(!bookingEventSeen(bookingId,'status:'+newStatus)){
+              const statusText=statusLabels[currentLang]?.[newStatus] || newStatus;
+              const title=t('orderUpdatedTitle');
+              const body=isCraftsmanUser ? statusText : (t('statusChangedNotif') + ': ' + statusText);
+              if(showLocalNotification(title, body, key)) saveBookingEvent(bookingId,'status:'+newStatus);
             }
           }
-          knownBookingStatuses[change.doc.id] = d.status;
         }
       });
-      notifFirstLoad = false;
-    }, error=>console.log('تعذر الاستماع للطلبات:', error));
+      notifFirstLoad=false;
+    }, error=>console.log('تعذر الاستماع للطلبات:',error));
 
-  // Watch all conversations in which the current user participates, then watch their messages.
+  // ================= Message notifications =================
   messageNotifUnsubscribe = db.collection('conversations')
-    .where('participants', 'array-contains', user.uid)
+    .where('participants','array-contains',user.uid)
     .onSnapshot(convSnap=>{
-      convSnap.docs.forEach(convDoc=>{
-        const convId = convDoc.id;
-        const cd = convDoc.data();
-        const otherName = user.uid === cd.craftsmanId
-          ? (cd.customerName || cd.customerEmail || '')
-          : (cd.craftsmanName || '');
-
+      convSnap.docChanges().forEach(convChange=>{
+        if(convChange.type!=='added' && convChange.type!=='modified') return;
+        const convDoc=convChange.doc;
+        const convId=convDoc.id;
+        const cd=convDoc.data()||{};
+        const otherId=(cd.participants||[]).find(id=>id!==user.uid)||'';
+        const otherName=(cd.participantNames||{})[otherId] || cd.craftsmanName || cd.customerName || cd.customerEmail || '';
         if(messageSubUnsubscribes.has(convId)) return;
-        const unsubMessages = db.collection('conversations').doc(convId).collection('messages')
-          .orderBy('createdAt', 'desc').limit(20)
+
+        let firstSnapshot=true;
+        const unsubMessages=db.collection('conversations').doc(convId).collection('messages')
+          .orderBy('createdAt','desc').limit(50)
           .onSnapshot(msgSnap=>{
             msgSnap.docChanges().forEach(change=>{
-              if(change.type !== 'added') return;
-              const m = change.doc.data();
-              if(!m || m.senderId === user.uid) return;
+              if(change.type!=='added') return;
+              const m=change.doc.data()||{};
+              const messageId=change.doc.id;
+              const uniqueId=convId+'_'+messageId;
+              const createdMs=m.createdAt?.toMillis?.() || 0;
 
-              const uniqueId = convId + '_' + change.doc.id;
+              if(!m.senderId || m.senderId===user.uid) return;
               if(knownMessageIds.has(uniqueId)) return;
 
-              // On the initial snapshot, remember existing messages but don't notify for old messages.
-              if(messageNotifFirstLoad){
+              // في أول snapshot: علّم الموجود مسبقًا كمشاهد فقط، ولا تعرض إشعارًا.
+              if(firstSnapshot || createdMs < notificationBaselineAt || (msgSnap.metadata?.fromCache && !change.doc.metadata?.hasPendingWrites)){
                 knownMessageIds.add(uniqueId);
                 return;
               }
 
               knownMessageIds.add(uniqueId);
 
-              // If this conversation is currently open, the message is already being read.
-              // Do not show an unread badge or notification for it.
-              if(chatConvId === convId && chatOverlay.classList.contains('show')){
-                db.collection('conversations').doc(convId).set(
-                  { ['unreadCountBy.'+user.uid]: 0 },
-                  {merge:true}
-                ).catch(()=>{});
+              // إذا كانت الرسالة مقروءة بالفعل، لا نعيد إشعارها.
+              const seenBy=Array.isArray(m.seenBy)?m.seenBy:[];
+              if(seenBy.includes(user.uid)){
+                saveKnownMessageIds();
                 return;
               }
 
-              unreadMessages++;
-              setBadge('msg-badge', unreadMessages);
+              const openNow=chatConvId===convId && chatOverlay.classList.contains('show');
+              if(openNow){
+                db.collection('conversations').doc(convId).set({['unreadCountBy.'+user.uid]:0},{merge:true}).catch(()=>{});
+                db.collection('conversations').doc(convId).collection('messages').doc(messageId).update({
+                  seenBy:firebase.firestore.FieldValue.arrayUnion(user.uid),
+                  deliveredTo:firebase.firestore.FieldValue.arrayUnion(user.uid)
+                }).catch(()=>{});
+                saveKnownMessageIds();
+                return;
+              }
 
               const senderLabel=(m.senderName||otherName||'').trim();
               const body=(m.text||'').trim()||t('newMessageNotif');
-              showLocalNotification(senderLabel?`${t('messageFrom')} ${senderLabel}`:t('newMessageNotif'),body);
+              const eventKey='message:'+uniqueId;
+              if(showLocalNotification(senderLabel?`${t('messageFrom')} ${senderLabel}`:t('newMessageNotif'), body, eventKey)){
+                unreadMessages++;
+                setBadge('msg-badge',unreadMessages);
+              }
+              saveKnownMessageIds();
             });
-          }, ()=>{});
-        messageSubUnsubscribes.set(convId, unsubMessages);
+            firstSnapshot=false;
+          },()=>{});
+        messageSubUnsubscribes.set(convId,unsubMessages);
       });
-      messageNotifFirstLoad = false;
-    }, error=>console.log('تعذر الاستماع للمحادثات:', error));
+    }, error=>console.log('تعذر الاستماع للمحادثات:',error));
 }
 
 function stopNotificationListeners(){
@@ -1962,7 +2322,7 @@ updateOnlineStatus();
 
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('./sw.js?v=notifications-2').then(reg=>{
+    navigator.serviceWorker.register('./sw.js?v=6').then(reg=>{
       reg.addEventListener('updatefound', ()=>{
         const newWorker = reg.installing;
         if(!newWorker) return;
@@ -1990,5 +2350,18 @@ if('serviceWorker' in navigator){
   });
 }
 </script>
-</body>
+
+<script>
+// ===== PATCH: تنظيف حماية الإشعارات القديمة والتوافق مع النسخ السابقة =====
+(function(){
+  try{
+    // لا نحذف سجل الحماية الجديد. نحذف فقط السجل القديم المحدود زمنيًا.
+    const oldKey='khadamati_notification_seen_v1';
+    const old=JSON.parse(localStorage.getItem(oldKey)||'{}');
+    const now=Date.now();
+    Object.keys(old).forEach(k=>{ if(now-Number(old[k]||0)>2592000000) delete old[k]; });
+    if(Object.keys(old).length) localStorage.setItem(oldKey,JSON.stringify(old));
+  }catch(e){}
+})();
+</script>\n</body>
 </html>
