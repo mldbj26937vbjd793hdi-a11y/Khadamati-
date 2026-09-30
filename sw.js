@@ -1,7 +1,6 @@
 // =====================================================
 // Monetag
 // =====================================================
-
 self.options = {
     "domain": "3nbf4.com",
     "zoneId": 11843136
@@ -18,7 +17,7 @@ importScripts(
 // Khadamati Service Worker
 // =====================================================
 
-const CACHE_NAME = 'khadamati-cache-auto';
+const CACHE_NAME = 'khadamati-cache-v7';
 
 const STATIC_ASSETS = [
     './',
@@ -36,26 +35,14 @@ const STATIC_ASSETS = [
 self.addEventListener('install', event => {
 
     event.waitUntil(
-
         caches.open(CACHE_NAME)
-            .then(cache => {
-
-                return cache.addAll(STATIC_ASSETS);
-
-            })
+            .then(cache => cache.addAll(STATIC_ASSETS))
             .catch(error => {
-
-                console.log(
-                    'Cache install error:',
-                    error
-                );
-
+                console.log('Cache install error:', error);
             })
-
     );
 
     self.skipWaiting();
-
 });
 
 
@@ -67,29 +54,21 @@ self.addEventListener('activate', event => {
 
     event.waitUntil(
 
-        caches.keys()
-            .then(cacheNames => {
+        caches.keys().then(cacheNames => {
 
-                return Promise.all(
+            return Promise.all(
 
-                    cacheNames
-                        .filter(
-                            cacheName =>
-                                cacheName !== CACHE_NAME
-                        )
-                        .map(
-                            cacheName =>
-                                caches.delete(cacheName)
-                        )
+                cacheNames
+                    .filter(cacheName => cacheName !== CACHE_NAME)
+                    .map(cacheName => caches.delete(cacheName))
 
-                );
+            );
 
-            })
-            .then(() => {
+        }).then(() => {
 
-                return self.clients.claim();
+            return self.clients.claim();
 
-            })
+        })
 
     );
 
@@ -105,6 +84,7 @@ self.addEventListener('message', event => {
     if (!event.data) return;
 
 
+    // تحديث Service Worker مباشرة
     if (event.data.type === 'SKIP_WAITING') {
 
         self.skipWaiting();
@@ -112,23 +92,22 @@ self.addEventListener('message', event => {
     }
 
 
+    // حذف جميع الكاش
     if (event.data.type === 'CLEAR_CACHE') {
 
         event.waitUntil(
 
-            caches.keys()
-                .then(cacheNames => {
+            caches.keys().then(cacheNames => {
 
-                    return Promise.all(
+                return Promise.all(
 
-                        cacheNames.map(
-                            cacheName =>
-                                caches.delete(cacheName)
-                        )
+                    cacheNames.map(cacheName =>
+                        caches.delete(cacheName)
+                    )
 
-                    );
+                );
 
-                })
+            })
 
         );
 
@@ -154,13 +133,10 @@ self.addEventListener('push', event => {
     } catch (e) {
 
         data = {
-
             title: 'خدماتي',
-
             body: event.data
                 ? event.data.text()
                 : 'لديك إشعار جديد'
-
         };
 
     }
@@ -184,16 +160,16 @@ self.addEventListener('push', event => {
         './icon-192.png';
 
 
+    const badge =
+        data.notification?.badge ||
+        data.badge ||
+        './icon-192.png';
+
+
     const url =
         data.data?.url ||
         data.url ||
         './index.html';
-
-
-    const notificationId =
-        data.id ||
-        data.messageId ||
-        Date.now();
 
 
     const options = {
@@ -202,7 +178,7 @@ self.addEventListener('push', event => {
 
         icon: icon,
 
-        badge: './icon-192.png',
+        badge: badge,
 
         dir: 'rtl',
 
@@ -214,16 +190,8 @@ self.addEventListener('push', event => {
             200
         ],
 
-        tag: String(notificationId),
-
-        renotify: false,
-
         data: {
-
-            url: url,
-
-            id: notificationId
-
+            url: url
         }
 
     };
@@ -238,7 +206,10 @@ self.addEventListener('push', event => {
 
     );
 
-});// =====================================================
+});
+
+
+// =====================================================
 // NOTIFICATION CLICK
 // =====================================================
 
@@ -248,7 +219,6 @@ self.addEventListener(
 
         event.notification.close();
 
-
         const url =
             event.notification?.data?.url ||
             './index.html';
@@ -257,32 +227,18 @@ self.addEventListener(
         event.waitUntil(
 
             clients.matchAll({
-
                 type: 'window',
-
                 includeUncontrolled: true
+            }).then(clientList => {
 
-            })
-            .then(clientList => {
-
-
-                // إذا التطبيق مفتوح على نفس الصفحة
-
+                // إذا التطبيق مفتوح
                 for (const client of clientList) {
 
                     if (
-
                         'focus' in client &&
-
                         client.url.includes(
-
-                            new URL(
-                                url,
-                                self.location.origin
-                            ).pathname
-
+                            new URL(url, self.location.origin).pathname
                         )
-
                     ) {
 
                         return client.focus();
@@ -292,23 +248,18 @@ self.addEventListener(
                 }
 
 
-
-                // إذا التطبيق مفتوح
-
+                // إذا التطبيق مفتوح لكن على صفحة أخرى
                 for (const client of clientList) {
 
                     if ('focus' in client) {
 
                         client.postMessage({
 
-                            type:
-                            'OPEN_NOTIFICATION',
+                            type: 'OPEN_NOTIFICATION',
 
-                            url:
-                            url
+                            url: url
 
                         });
-
 
                         return client.focus();
 
@@ -317,24 +268,19 @@ self.addEventListener(
                 }
 
 
-
                 // فتح التطبيق
-
                 if (clients.openWindow) {
 
                     return clients.openWindow(url);
 
                 }
 
-
             })
 
         );
 
     }
-
 );
-
 
 
 // =====================================================
@@ -343,43 +289,31 @@ self.addEventListener(
 
 self.addEventListener('fetch', event => {
 
-
     if (event.request.method !== 'GET') {
-
         return;
-
     }
-
 
 
     const url =
         new URL(event.request.url);
 
 
-
-    // لا نتدخل في Firebase
+    // =================================================
+    // إعلانات Monetag و HighRevenueFormat
+    // لا نتدخل فيها نهائياً
+    // =================================================
 
     if (
 
-        url.hostname.includes(
-            'firebaseio.com'
-        ) ||
+        url.hostname.includes('highrevenueformat.com') ||
 
-        url.hostname.includes(
-            'googleapis.com'
-        ) ||
+        url.hostname.includes('3nbf4.com') ||
 
-        url.hostname.includes(
-            'gstatic.com'
-        ) ||
+        url.hostname.includes('monetag.com') ||
 
-        url.hostname.includes(
-            'google.com'
-        ) ||
+        url.hostname.includes('propellerads.com') ||
 
-        url.hostname.includes(
-            'firebaseapp.com'
-        )
+        url.hostname.includes('adsterra.com')
 
     ) {
 
@@ -387,6 +321,29 @@ self.addEventListener('fetch', event => {
 
     }
 
+
+    // =================================================
+    // Firebase / Google
+    // لا نتدخل فيها
+    // =================================================
+
+    if (
+
+        url.hostname.includes('firebaseio.com') ||
+
+        url.hostname.includes('googleapis.com') ||
+
+        url.hostname.includes('gstatic.com') ||
+
+        url.hostname.includes('google.com') ||
+
+        url.hostname.includes('firebaseapp.com')
+
+    ) {
+
+        return;
+
+    }
 
 
     // =================================================
@@ -394,99 +351,82 @@ self.addEventListener('fetch', event => {
     // Network First
     // =================================================
 
-
     if (
 
         event.request.mode === 'navigate' ||
 
         url.pathname.endsWith('/') ||
 
-        url.pathname.endsWith(
-            '/index.html'
-        ) ||
+        url.pathname.endsWith('/index.html') ||
 
-        url.pathname.endsWith(
-            'index.html'
-        )
+        url.pathname.endsWith('index.html')
 
     ) {
 
-
         event.respondWith(
 
-
             fetch(event.request, {
-
-                cache:
-                'no-store'
-
+                cache: 'no-store'
             })
 
             .then(response => {
 
-
                 if (
-
                     response &&
-
                     response.ok
-
                 ) {
-
 
                     const clone =
                         response.clone();
 
 
-                    caches.open(
-                        CACHE_NAME
-                    )
-                    .then(cache => {
+                    caches.open(CACHE_NAME)
+                        .then(cache => {
 
+                            cache.put(
+                                './index.html',
+                                clone
+                            );
 
-                        cache.put(
-
-                            './index.html',
-
-                            clone
-
-                        );
-
-
-                    });
-
+                        });
 
                 }
 
 
                 return response;
 
-
             })
-
 
             .catch(() => {
 
-
                 return caches.match(
-
                     './index.html'
+                )
 
-                );
+                .then(cachedResponse => {
 
+                    return cachedResponse ||
+
+                        new Response(
+                            'لا يمكن الاتصال بالإنترنت',
+                            {
+                                status: 503,
+                                headers: {
+                                    'Content-Type':
+                                        'text/plain; charset=utf-8'
+                                }
+                            }
+                        );
+
+                });
 
             })
 
-
         );
-
 
         return;
 
     }
-
-
-
 
 
     // =================================================
@@ -494,89 +434,62 @@ self.addEventListener('fetch', event => {
     // Cache First
     // =================================================
 
-
     event.respondWith(
 
+        caches.match(event.request)
 
-        caches.match(
-            event.request
-        )
+            .then(cachedResponse => {
 
-        .then(cachedResponse => {
+                if (cachedResponse) {
 
-
-            if (cachedResponse) {
-
-                return cachedResponse;
-
-            }
-
-
-
-            return fetch(
-                event.request
-            )
-
-            .then(response => {
-
-
-                if (
-
-                    response &&
-
-                    response.status === 200 &&
-
-                    response.type === 'basic'
-
-                ) {
-
-
-                    const clone =
-                        response.clone();
-
-
-
-                    caches.open(
-                        CACHE_NAME
-                    )
-
-                    .then(cache => {
-
-
-                        cache.put(
-
-                            event.request,
-
-                            clone
-
-                        );
-
-
-                    });
-
+                    return cachedResponse;
 
                 }
 
 
-                return response;
+                return fetch(event.request)
 
+                    .then(response => {
+
+                        if (
+
+                            response &&
+
+                            response.status === 200 &&
+
+                            response.type === 'basic'
+
+                        ) {
+
+                            const clone =
+                                response.clone();
+
+
+                            caches.open(CACHE_NAME)
+                                .then(cache => {
+
+                                    cache.put(
+                                        event.request,
+                                        clone
+                                    );
+
+                                });
+
+                        }
+
+
+                        return response;
+
+                    })
+
+                    .catch(() => {
+
+                        return cachedResponse;
+
+                    });
 
             })
 
-
-            .catch(() => {
-
-
-                return cachedResponse;
-
-
-            });
-
-
-        })
-
-
     );
-
 
 });
