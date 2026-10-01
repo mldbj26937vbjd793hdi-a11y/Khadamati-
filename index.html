@@ -153,6 +153,34 @@ nav button .n-ic{display:block;font-size:19px;margin-bottom:2px;}
 
 #app{opacity:0;transform:translateY(8px);transition:opacity .5s ease,transform .5s ease;}
 #app.show{opacity:1;transform:translateY(0);}
+
+
+/* ===== App-like Android behavior ===== */
+html, body {
+  overscroll-behavior-y: none !important;
+  overscroll-behavior-x: none !important;
+  -webkit-overflow-scrolling: touch;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  overscroll-behavior: none !important;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Keep text fields usable */
+input, textarea, select, [contenteditable="true"] {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* Prevent the browser's pull-to-refresh gesture while keeping normal scrolling */
+#app {
+  overscroll-behavior-y: none !important;
+}
+
 </style>
 </head>
 <body>
@@ -2357,5 +2385,25 @@ if('serviceWorker' in navigator){
     if(Object.keys(old).length) localStorage.setItem(oldKey,JSON.stringify(old));
   }catch(e){}
 })();
-</script>\n</body>
+</script>\n
+
+<script>
+// Prevent Android Chrome/PWA pull-to-refresh when the app is at the top.
+(function(){
+  let startY = 0;
+  document.addEventListener('touchstart', function(e){
+    if (e.touches && e.touches.length === 1) startY = e.touches[0].clientY;
+  }, {passive: true});
+
+  document.addEventListener('touchmove', function(e){
+    if (!e.touches || e.touches.length !== 1) return;
+    const y = e.touches[0].clientY;
+    const dy = y - startY;
+    const atTop = (window.scrollY || document.documentElement.scrollTop || 0) <= 0;
+    if (atTop && dy > 0) e.preventDefault();
+  }, {passive: false});
+})();
+</script>
+
+</body>
 </html>
