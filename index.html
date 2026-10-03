@@ -1,12 +1,9 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="ar" dir="rtl" class="notranslate">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="خدماتي">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="google" content="notranslate">
 <title>خدماتي — حرفيون موثوقون عند الطلب</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#B5502D">
@@ -153,34 +150,6 @@ nav button .n-ic{display:block;font-size:19px;margin-bottom:2px;}
 
 #app{opacity:0;transform:translateY(8px);transition:opacity .5s ease,transform .5s ease;}
 #app.show{opacity:1;transform:translateY(0);}
-
-
-/* ===== App-like Android behavior ===== */
-html, body {
-  overscroll-behavior-y: none !important;
-  overscroll-behavior-x: none !important;
-  -webkit-overflow-scrolling: touch;
-}
-
-body {
-  margin: 0;
-  min-height: 100dvh;
-  overscroll-behavior: none !important;
-  -webkit-user-select: none;
-  user-select: none;
-}
-
-/* Keep text fields usable */
-input, textarea, select, [contenteditable="true"] {
-  -webkit-user-select: text;
-  user-select: text;
-}
-
-/* Prevent the browser's pull-to-refresh gesture while keeping normal scrolling */
-#app {
-  overscroll-behavior-y: none !important;
-}
-
 </style>
 </head>
 <body>
@@ -220,7 +189,7 @@ input, textarea, select, [contenteditable="true"] {
 <!-- ---------------- HOME ---------------- -->
 <div id="page-home" class="page active">
   <div class="search">
-    <input id="search-input" data-i18n-ph="searchPh" placeholder="ابحث عن خدمة">
+    <input id="search-input" name="q" type="search" data-i18n-ph="searchPh" placeholder="ابحث عن خدمة" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false">
     <button id="search-btn" data-i18n="search">بحث</button>
   </div>
 
@@ -229,17 +198,17 @@ input, textarea, select, [contenteditable="true"] {
        بعد ما تسجلي فشبكة إعلانات (Adsterra/PropellerAds) وتاخدي
        كود الإعلان ديالك، الصقيه هنا بدل هاد الـ div، أو جواه.
        ======================================================== -->
-  <div id="ad-slot-home" style="width:100%;min-height:250px;height:250px;display:flex;justify-content:center;align-items:center;overflow:hidden;margin:15px 0;text-align:center;">
-    <script>
-      atOptions = {
-        'key' : '33ca295e7132ffe8c23d91a46a83927d',
-        'format' : 'iframe',
-        'height' : 250,
-        'width' : 300,
-        'params' : {}
-      };
-    </script>
-    <script src="https://www.highrevenueformat.com/33ca295e7132ffe8c23d91a46a83927d/invoke.js"></script>
+  <div id="ad-slot-home" style="min-height:260px;width:100%;display:flex;justify-content:center;align-items:center;overflow:hidden;margin:15px 0;">
+    <iframe
+      title="Advertisement"
+      width="300"
+      height="250"
+      frameborder="0"
+      scrolling="no"
+      style="width:300px;height:250px;border:0;display:block;background:transparent;"
+      referrerpolicy="no-referrer-when-downgrade"
+      srcdoc='<!doctype html><html><head><meta name="viewport" content="width=300,initial-scale=1"><style>html,body{margin:0;padding:0;width:300px;height:250px;overflow:hidden;background:transparent}</style></head><body><script>var atOptions={"key":"33ca295e7132ffe8c23d91a46a83927d","format":"iframe","height":250,"width":300,"params":{}};<\/script><script src="https://www.highrevenueformat.com/33ca295e7132ffe8c23d91a46a83927d/invoke.js"><\/script></body></html>'>
+    </iframe>
   </div>
 
   <div class="categories" id="categories">
@@ -2385,25 +2354,5 @@ if('serviceWorker' in navigator){
     if(Object.keys(old).length) localStorage.setItem(oldKey,JSON.stringify(old));
   }catch(e){}
 })();
-</script>\n
-
-<script>
-// Prevent Android Chrome/PWA pull-to-refresh when the app is at the top.
-(function(){
-  let startY = 0;
-  document.addEventListener('touchstart', function(e){
-    if (e.touches && e.touches.length === 1) startY = e.touches[0].clientY;
-  }, {passive: true});
-
-  document.addEventListener('touchmove', function(e){
-    if (!e.touches || e.touches.length !== 1) return;
-    const y = e.touches[0].clientY;
-    const dy = y - startY;
-    const atTop = (window.scrollY || document.documentElement.scrollTop || 0) <= 0;
-    if (atTop && dy > 0) e.preventDefault();
-  }, {passive: false});
-})();
-</script>
-
-</body>
+</script>\n</body>
 </html>
