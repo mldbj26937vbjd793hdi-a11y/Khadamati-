@@ -150,6 +150,16 @@ nav button .n-ic{display:block;font-size:19px;margin-bottom:2px;}
 
 #app{opacity:0;transform:translateY(8px);transition:opacity .5s ease,transform .5s ease;}
 #app.show{opacity:1;transform:translateY(0);}
+
+/* App-like scrolling: prevent browser pull-to-refresh / overscroll */
+html, body {
+  overscroll-behavior-y: none;
+  overscroll-behavior-x: none;
+}
+body {
+  touch-action: pan-x pan-y;
+}
+
 </style>
 </head>
 <body>
@@ -189,7 +199,11 @@ nav button .n-ic{display:block;font-size:19px;margin-bottom:2px;}
 <!-- ---------------- HOME ---------------- -->
 <div id="page-home" class="page active">
   <div class="search">
-    <input id="search-input" name="q" type="search" data-i18n-ph="searchPh" placeholder="ابحث عن خدمة" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false">
+    <input id="search-input" name="service_query" type="text"
+    data-i18n-ph="searchPh" placeholder="ابحث عن خدمة"
+    autocomplete="new-password" autocorrect="off"
+    autocapitalize="none" spellcheck="false"
+    inputmode="search" readonly>
     <button id="search-btn" data-i18n="search">بحث</button>
   </div>
 
@@ -900,6 +914,15 @@ document.querySelectorAll('.cat-card').forEach(card=>{
     renderCraftsmen();
   });
 });
+
+const searchInput = document.getElementById('search-input');
+searchInput.addEventListener('pointerdown', () => {
+  searchInput.removeAttribute('readonly');
+});
+searchInput.addEventListener('focus', () => {
+  searchInput.removeAttribute('readonly');
+});
+
 document.getElementById('search-btn').addEventListener('click', ()=>{
   currentSearch = document.getElementById('search-input').value.trim();
   renderCraftsmen();
