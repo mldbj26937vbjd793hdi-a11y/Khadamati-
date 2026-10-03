@@ -151,13 +151,33 @@ nav button .n-ic{display:block;font-size:19px;margin-bottom:2px;}
 #app{opacity:0;transform:translateY(8px);transition:opacity .5s ease,transform .5s ease;}
 #app.show{opacity:1;transform:translateY(0);}
 
-/* App-like scrolling: prevent browser pull-to-refresh / overscroll */
-html, body {
-  overscroll-behavior-y: none;
-  overscroll-behavior-x: none;
+/* Search box: contenteditable prevents Android autofill/email suggestions */
+.search-field{
+  flex:1;
+  min-width:0;
+  margin:0;
+  padding:12px 14px;
+  border:2px solid #e9a400;
+  border-radius:16px;
+  background:#fff;
+  color:inherit;
+  font:inherit;
+  outline:none;
+  direction:rtl;
+  text-align:right;
+  line-height:1.4;
 }
-body {
-  touch-action: pan-x pan-y;
+.search-field:empty::before{
+  content:attr(data-placeholder);
+  color:#888;
+  pointer-events:none;
+}
+.search-field:focus{
+  border-color:#e9a400;
+}
+html,body{
+  overscroll-behavior-y:none;
+  overscroll-behavior-x:none;
 }
 
 </style>
@@ -199,11 +219,10 @@ body {
 <!-- ---------------- HOME ---------------- -->
 <div id="page-home" class="page active">
   <div class="search">
-    <input id="search-input" name="service_query" type="text"
-    data-i18n-ph="searchPh" placeholder="ابحث عن خدمة"
-    autocomplete="new-password" autocorrect="off"
-    autocapitalize="none" spellcheck="false"
-    inputmode="search" readonly>
+    <div id="search-input" class="search-field" role="textbox"
+    contenteditable="plaintext-only" aria-label="ابحث عن خدمة"
+    data-i18n-ph="searchPh" data-placeholder="ابحث عن خدمة"
+    spellcheck="false"></div>
     <button id="search-btn" data-i18n="search">بحث</button>
   </div>
 
@@ -212,17 +231,17 @@ body {
        بعد ما تسجلي فشبكة إعلانات (Adsterra/PropellerAds) وتاخدي
        كود الإعلان ديالك، الصقيه هنا بدل هاد الـ div، أو جواه.
        ======================================================== -->
-  <div id="ad-slot-home" style="min-height:260px;width:100%;display:flex;justify-content:center;align-items:center;overflow:hidden;margin:15px 0;">
-    <iframe
-      title="Advertisement"
-      width="300"
-      height="250"
-      frameborder="0"
-      scrolling="no"
-      style="width:300px;height:250px;border:0;display:block;background:transparent;"
-      referrerpolicy="no-referrer-when-downgrade"
-      srcdoc='<!doctype html><html><head><meta name="viewport" content="width=300,initial-scale=1"><style>html,body{margin:0;padding:0;width:300px;height:250px;overflow:hidden;background:transparent}</style></head><body><script>var atOptions={"key":"33ca295e7132ffe8c23d91a46a83927d","format":"iframe","height":250,"width":300,"params":{}};<\/script><script src="https://www.highrevenueformat.com/33ca295e7132ffe8c23d91a46a83927d/invoke.js"><\/script></body></html>'>
-    </iframe>
+  <div id="ad-slot-home" style="width:100%;min-height:250px;height:250px;display:flex;justify-content:center;align-items:center;overflow:hidden;margin:15px 0;text-align:center;">
+    <script>
+      atOptions = {
+        'key' : '33ca295e7132ffe8c23d91a46a83927d',
+        'format' : 'iframe',
+        'height' : 250,
+        'width' : 300,
+        'params' : {}
+      };
+    </script>
+    <script src="https://www.highrevenueformat.com/33ca295e7132ffe8c23d91a46a83927d/invoke.js"></script>
   </div>
 
   <div class="categories" id="categories">
@@ -722,7 +741,15 @@ function applyLang(){
   });
   document.querySelectorAll('[data-i18n-ph]').forEach(el=>{
     const key=el.getAttribute('data-i18n-ph');
-    if(translations[key]) el.placeholder=translations[key][currentLang];
+    if(translations[key]){
+      const value = translations[key][currentLang];
+      if(el.hasAttribute('contenteditable')){
+        el.setAttribute('data-placeholder', value);
+        el.setAttribute('aria-label', value);
+      }else{
+        el.placeholder = value;
+      }
+    }
   });
 
   // عناصر ثابتة لم تكن مرتبطة سابقًا بمفتاح ترجمة.
@@ -914,21 +941,17 @@ document.querySelectorAll('.cat-card').forEach(card=>{
     renderCraftsmen();
   });
 });
-
-const searchInput = document.getElementById('search-input');
-searchInput.addEventListener('pointerdown', () => {
-  searchInput.removeAttribute('readonly');
-});
-searchInput.addEventListener('focus', () => {
-  searchInput.removeAttribute('readonly');
-});
-
 document.getElementById('search-btn').addEventListener('click', ()=>{
-  currentSearch = document.getElementById('search-input').value.trim();
+  currentSearch = document.getElementById('search-input').textContent.trim();
   renderCraftsmen();
 });
 document.getElementById('search-input').addEventListener('keydown', e=>{
-  if(e.key==='Enter'){ currentSearch = e.target.value.trim(); renderCraftsmen(); }
+  if(e.key==='Enter'){
+    e.preventDefault();
+    currentSearch = e.target.textContent.trim();
+    renderCraftsmen();
+    e.target.blur();
+  }
 });
 
 // ================= Booking modal =================
